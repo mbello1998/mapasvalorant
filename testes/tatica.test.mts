@@ -86,3 +86,35 @@ test("novoId e LIMITE_PONTOS", () => {
   assert.match(novoId(), /^p_[0-9a-f]{8}$/);
   assert.equal(LIMITE_PONTOS, 2000);
 });
+
+test("posição sem agente nem habilidade é aceita e grava os dois como null", () => {
+  const { para, ...semPara } = base;
+  for (const vazio of [null, "", undefined]) {
+    const r = normalizarPonto({ ...semPara, tipo: "posicao", agente: vazio, habilidade: vazio }, MAPAS);
+    assert.equal(r.ok, true);
+    if (r.ok) {
+      assert.equal(r.ponto.agente, null);
+      assert.equal(r.ponto.habilidade, null);
+    }
+  }
+  const ausentes = { ...semPara, tipo: "posicao" } as Record<string, unknown>;
+  delete ausentes.agente;
+  delete ausentes.habilidade;
+  const r = normalizarPonto(ausentes, MAPAS);
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(r.ponto.agente, null);
+});
+
+test("ponto com agente e sem habilidade é aceito", () => {
+  const r = normalizarPonto({ ...base, habilidade: null }, MAPAS);
+  assert.equal(r.ok, true);
+  if (r.ok) {
+    assert.equal(r.ponto.agente, "uuid-clove");
+    assert.equal(r.ponto.habilidade, null);
+  }
+});
+
+test("agente e habilidade com marcação continuam recusados", () => {
+  assert.equal(normalizarPonto({ ...base, agente: "<b>x</b>" }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, habilidade: "<i>" }, MAPAS).ok, false);
+});

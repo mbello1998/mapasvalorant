@@ -15,9 +15,10 @@ export type Ponto = {
   id: string;
   /** UUID do mapa na API da Riot. */
   mapa: string;
-  /** UUID do agente na API da Riot. */
-  agente: string;
-  habilidade: string;
+  /** UUID do agente na API da Riot. Null numa posição que não é de agente. */
+  agente: string | null;
+  /** Slot da habilidade. Null quando não é util. */
+  habilidade: string | null;
   lado: Lado;
   tipo: TipoPonto;
   /** Onde a pessoa fica. */
@@ -72,8 +73,10 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
   const mapa = texto(b.mapa);
   if (!mapasValidos.has(mapa)) return falha("Mapa desconhecido.");
 
-  const agente = texto(b.agente);
-  if (!agente) return falha("Escolha o agente.");
+  // Sem agente a tela mostra as posições do mapa e nenhuma util; essas posições
+  // são pontos sem agente, então ausente, null e vazio viram null, não erro.
+  const agente = texto(b.agente).slice(0, 64) || null;
+  if (agente && /[<>]/.test(agente)) return falha("Nada de marcação no texto.");
 
   if (b.lado !== "ataque" && b.lado !== "defesa") return falha("Escolha ataque ou defesa.");
   if (b.tipo !== "pixel" && b.tipo !== "posicao") return falha("Escolha pixel ou posição.");
@@ -100,8 +103,8 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
   // dia alguém troque por innerHTML e herde dado sujo já gravado.
   if (/[<>]/.test(titulo) || /[<>]/.test(corpo)) return falha("Nada de marcação no texto.");
 
-  const habilidade = texto(b.habilidade).slice(0, 60);
-  if (/[<>]/.test(habilidade)) return falha("Nada de marcação no texto.");
+  const habilidade = texto(b.habilidade).slice(0, 60) || null;
+  if (habilidade && /[<>]/.test(habilidade)) return falha("Nada de marcação no texto.");
 
   const video = texto(b.video);
   if (video && !VIDEO.test(video)) return falha("O vídeo precisa ser um link do YouTube.");
