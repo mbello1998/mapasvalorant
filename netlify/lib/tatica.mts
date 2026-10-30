@@ -143,3 +143,17 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
     },
   };
 }
+
+/**
+ * Lê o que veio do depósito sem confiar nele. Depósito vazio, corrompido ou
+ * gravado num formato antigo vira lista vazia (ou só os itens aproveitáveis),
+ * porque a página pública não pode cair em 500 por causa de um dado ruim.
+ * Sem `id` o ponto não serve: não dá para editar nem apagar, então sai.
+ */
+export function lerPontos(bruto: unknown): Ponto[] {
+  if (!Array.isArray(bruto)) return [];
+  return bruto.filter(
+    (p): p is Ponto =>
+      p !== null && typeof p === "object" && !Array.isArray(p) && typeof (p as Ponto).id === "string",
+  );
+}

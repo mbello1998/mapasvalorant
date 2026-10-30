@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizarPonto, LIMITE_PONTOS, novoId } from "../netlify/lib/tatica.mts";
+import { normalizarPonto, lerPontos, LIMITE_PONTOS, novoId } from "../netlify/lib/tatica.mts";
 
 const MAPAS = new Set(["uuid-ascent"]);
 const base = {
@@ -158,4 +158,32 @@ test("imagens gravadas são cópia do array de quem chamou", () => {
     entrada.push("/api/media/y.webp");
     assert.equal(r.ponto.imagens.length, 1);
   }
+});
+
+// lerPontos: o depósito pode estar vazio, corrompido ou ter mudado de formato.
+// Nada disso pode virar 500 na página pública.
+const gravado = {
+  id: "p_abc12345", mapa: "uuid-ascent", agente: null, habilidade: null,
+  lado: "defesa", tipo: "posicao", de: { x: 0.5, y: 0.5 }, para: null,
+  titulo: "Spawn", texto: "", imagens: [], video: null, conferido: false,
+  criadoEm: "2026-10-30T12:00:00.000Z",
+};
+
+test("lerPontos devolve lista vazia para null, objeto e texto", () => {
+  assert.deepEqual(lerPontos(null), []);
+  assert.deepEqual(lerPontos(undefined), []);
+  assert.deepEqual(lerPontos({}), []);
+  assert.deepEqual(lerPontos("texto"), []);
+});
+
+test("lerPontos devolve lista vazia quando os itens não são objetos", () => {
+  assert.deepEqual(lerPontos([1, "a", null, [], true]), []);
+});
+
+test("lerPontos devolve os pontos de um array válido", () => {
+  assert.deepEqual(lerPontos([gravado]), [gravado]);
+});
+
+test("lerPontos descarta só os itens quebrados e sem id", () => {
+  assert.deepEqual(lerPontos([null, gravado, { titulo: "sem id" }, 7]), [gravado]);
 });
