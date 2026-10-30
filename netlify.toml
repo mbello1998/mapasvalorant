@@ -1,0 +1,47 @@
+# Estande — configuração Netlify
+# Deploy:  netlify deploy --prod
+# Local:   netlify dev
+
+[build]
+  publish = "public"
+  command = "echo 'site estatico — nada para compilar'"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# As rotas /api/* são declaradas no `export const config.path` de cada função.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+
+# Código: revalida sempre. Com ETag isso custa um 304 por carregamento, e em
+# troca uma publicação chega na hora. Com `max-age=3600` sem revalidação —
+# como estava — o navegador seguia rodando o JS antigo por até uma hora depois
+# de cada deploy, e a pessoa via a página velha sem entender por quê.
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Imagem e áudio são pesados e mudam pouco: um dia de cache, e a revalidação
+# depois disso. Trocar um desses arquivos sem renomear demora até um dia para
+# chegar em quem já visitou.
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+[[headers]]
+  for = "/assets/audio/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"

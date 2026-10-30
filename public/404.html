@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Página não encontrada — Estande</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Barlow:wght@400;600&display=swap">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<style>
+  body {
+    margin: 0; min-height: 100vh;
+    display: grid; place-content: center; justify-items: start;
+    gap: var(--e-4); padding: var(--e-5);
+    background: var(--aco-fundo); color: var(--luz);
+    font-family: var(--fonte-texto);
+  }
+  h1 { font-family: var(--fonte-display); font-weight: 700; font-size: clamp(2rem, 7vw, 3.157rem); margin: 0; line-height: 1.05; }
+  p { margin: 0; color: var(--tinta-2); max-width: 46ch; line-height: 1.6; }
+  a {
+    --corte: 7px;
+    position: relative; background: var(--sinal); color: #fff;
+    text-decoration: none; padding: 0.8rem 1.5rem;
+    font-family: var(--fonte-display); font-weight: 600;
+    clip-path: polygon(0 0, calc(100% - var(--corte)) 0, 100% var(--corte), 100% 100%, var(--corte) 100%, 0 calc(100% - var(--corte)));
+  }
+  a:focus-visible { outline: 2px solid var(--latao); outline-offset: 3px; }
+</style>
+</head>
+<body>
+  <h1>Esse endereço não existe</h1>
+  <p>Nenhuma página responde aqui. O estande e os dados ao vivo continuam no lugar de sempre.</p>
+  <a href="/">Voltar para o início</a>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arsenal — Estande</title>
+<meta name="description" content="Todas as skins do VALORANT com níveis, cromas e vídeo. Monte seu loadout e veja o preço em VP e em reais.">
+<meta name="theme-color" content="#16262E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316262E'/%3E%3Cpath d='M4 19h20l4-3-4-3H4z' fill='%23D4A24C'/%3E%3C/svg%3E" id="favicon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="pulo" href="#catalogo">Pular para o catálogo</a>
+
+<nav class="trilho" aria-label="Seções do site">
+  <a class="marca" href="index.html" id="marca">
+    <span class="marca__sigla">Estande</span>
+    <span class="marca__sufixo">BR</span>
+  </a>
+  <div class="trilho__nav" id="nav"></div>
+  <div class="trilho__pe" id="contaTrilho"></div>
+  <div class="trilho__pe trilho__pe--fim">
+    <a class="trilho__eng" href="admin.html">Painel</a>
+  </div>
+</nav>
+
+<main class="palco" id="topo">
+
+  <header class="faixa cabeca">
+    <div class="limite">
+      <h1 data-campo="arsenal.titulo">Arsenal</h1>
+      <p class="cabeca__linha" data-campo="arsenal.texto">
+        Mil quatrocentas e trinta e três skins com níveis, cromas e vídeo. Monte o
+        loadout e veja quanto sai.
+      </p>
+      <p class="cabeca__aviso" id="avisoPreco"></p>
+    </div>
+  </header>
+
+  <!-- ======================================================== loadout -->
+  <section class="faixa loadout" id="loadout" aria-labelledby="loadoutTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="loadoutTit">Seu loadout</h2>
+        <p>Escolha uma skin para cada arma. O total soma só o que é vendido por VP.</p>
+      </div>
+
+      <div class="loadout__corpo">
+        <div class="loadout__rack" id="rack"></div>
+
+        <aside class="conta chf" aria-live="polite">
+          <div class="conta__topo">
+            <div class="conta__vp" id="contaVp">0</div>
+            <div class="conta__rot">VP no total</div>
+          </div>
+          <div class="conta__real" id="contaReal">≈ R$ 0</div>
+          <div class="conta__linhas" id="contaLinhas"></div>
+          <div class="conta__acoes">
+            <button class="btn btn--vazio chf" type="button" id="btnLimpar">Limpar loadout</button>
+            <a class="btn btn--latao chf" href="linha.html" id="btnLevar">Levar para a linha</a>
+          </div>
+          <p class="conta__nota">
+            Preço de tabela por raridade. Skin de passe de batalha, evento ou pacote
+            exclusivo não entra na conta — o site marca quando é o caso.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= catálogo -->
+  <section class="faixa faixa--nua" id="catalogo" aria-labelledby="catTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="catTit">Catálogo</h2>
+        <p>Filtre por arma, raridade ou coleção. A busca também entende o nome da coleção.</p>
+        <span class="titulo-secao__conta" id="catConta"></span>
+      </div>
+
+      <div class="busca">
+        <label class="busca__campo">
+          <span class="oculto">Buscar skin ou coleção</span>
+          <input type="search" id="busca" placeholder="Buscar skin ou coleção — ex.: Reaver, Glitchpop, Ancifogo" autocomplete="off">
+        </label>
+        <select id="ordem" aria-label="Ordenar">
+          <option value="nome">Por nome</option>
+          <option value="caro">Mais caras primeiro</option>
+          <option value="barato">Mais baratas primeiro</option>
+          <option value="niveis">Mais níveis primeiro</option>
+        </select>
+      </div>
+
+      <div class="filtros" id="filtroArma" role="group" aria-label="Filtrar por arma"></div>
+      <div class="filtros" id="filtroRaridade" role="group" aria-label="Filtrar por raridade"></div>
+
+      <div class="skins" id="skins">
+        <p class="carregando">Carregando o arsenal — são mil e quatrocentas skins…</p>
+      </div>
+      <div class="mais">
+        <button class="btn chf" type="button" id="btnMais" hidden>Mostrar mais</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape palco">
+  <div class="limite rodape__grade">
+    <div>
+      <p class="rodape__texto" data-campo="rodape.texto"></p>
+      <p class="rodape__aviso" data-campo="rodape.aviso"></p>
+    </div>
+    <div class="rodape__links" id="rodapeLinks"></div>
+  </div>
+</footer>
+
+<dialog class="gaveta" id="gaveta" aria-labelledby="gavetaNome">
+  <div class="gaveta__caixa chf" id="gavetaCaixa"></div>
+</dialog>
+
+<script type="module" src="assets/js/arsenal.js"></script>
+</body>
+</html>

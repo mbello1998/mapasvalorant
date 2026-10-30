@@ -1,0 +1,208 @@
+@import url("tokens.css");
+
+/* O painel usa os mesmos tokens do site, mas mais denso: aqui é ferramenta de
+   trabalho, não vitrine. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--aco-fundo);
+  color: var(--luz);
+  font-family: var(--fonte-texto);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+h1, h2, h3 { font-family: var(--fonte-display); font-weight: 700; margin: 0; line-height: 1.1; }
+p { margin: 0; }
+a { color: var(--sinal-tinta); }
+:focus-visible { outline: 2px solid var(--latao); outline-offset: 2px; }
+
+/* `display` em uma classe vence o `[hidden]` do navegador, e a tela de acesso
+   ficaria por cima do painel já carregado. */
+[hidden] { display: none !important; }
+
+.chf {
+  --corte: var(--corte-p);
+  --chf-borda: var(--linha-fina);
+  --chf-fundo: var(--aco);
+  --chf-anel: 1px;
+  position: relative;
+  isolation: isolate;
+  background: var(--chf-borda);
+  clip-path: polygon(0 0, calc(100% - var(--corte)) 0, 100% var(--corte), 100% 100%, var(--corte) 100%, 0 calc(100% - var(--corte)));
+}
+/* z-index -1 dentro do stacking context próprio: o preenchimento fica acima do
+   fundo que faz as vezes de borda, e abaixo do texto escrito no elemento. */
+.chf::before { content: ""; position: absolute; inset: var(--chf-anel); background: var(--chf-fundo); clip-path: inherit; z-index: -1; }
+.chf > * { position: relative; }
+
+.btn {
+  --chf-fundo: var(--aco-alto); --chf-borda: var(--linha);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 0.55rem 1rem; border: 0; cursor: pointer;
+  font-family: var(--fonte-display); font-weight: 600; font-size: 0.8125rem;
+  text-decoration: none; color: inherit;
+}
+.btn:hover { --chf-fundo: var(--linha-fina); }
+.btn--forte { --chf-fundo: var(--sinal); --chf-borda: var(--sinal); color: #fff; }
+.btn--latao { --chf-fundo: var(--aco); --chf-borda: var(--latao); color: var(--latao); }
+.btn--perigo { --chf-fundo: var(--sinal-fundo); --chf-borda: var(--sinal); color: var(--sinal-tinta); }
+.btn--perigo:hover { --chf-fundo: var(--sinal); color: #fff; }
+.btn--mini { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* --------------------------------------------------------------- acesso --- */
+.acesso { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+.acesso__caixa { --corte: var(--corte-g); --chf-borda: var(--linha); max-width: 460px; width: 100%; padding: 2rem; }
+.acesso h1 { font-size: 1.8rem; }
+.acesso p { color: var(--tinta-2); font-size: 0.875rem; margin-top: 0.75rem; }
+.acesso form { display: grid; gap: 0.75rem; margin-top: 1.5rem; }
+
+/* --------------------------------------------------------------- chassi --- */
+.barra {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--aco);
+  border-bottom: 1px solid var(--linha-fina);
+}
+.barra__marca { font-family: var(--fonte-display); font-weight: 700; font-size: 1.05rem; }
+.barra__marca b { color: var(--sinal-tinta); }
+.barra__estado { font-size: 0.8125rem; color: var(--tinta-2); margin-left: auto; }
+.barra__estado[data-tipo="erro"] { color: var(--sinal-tinta); }
+.barra__estado[data-tipo="ok"] { color: var(--verde); }
+.barra__acoes { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.corpo { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 1.25rem; padding: 1.25rem; align-items: start; }
+
+.abas { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 72px; }
+.abas button {
+  text-align: left; border: 0; background: transparent; cursor: pointer;
+  padding: 0.5rem 0.75rem; font-size: 0.875rem; font-weight: 600; color: var(--tinta-2);
+  border-left: 2px solid transparent;
+}
+.abas button:hover { color: var(--luz); background: var(--aco); }
+.abas button[aria-selected="true"] { color: var(--luz); border-left-color: var(--sinal); background: var(--aco); }
+
+.painel { display: grid; gap: 1.25rem; }
+.painel[hidden] { display: none; }
+
+.bloco { --corte: var(--corte-m); --chf-borda: var(--linha-fina); padding: 1.25rem; }
+.bloco > h2 { font-size: 1.15rem; }
+.bloco__nota { color: var(--tinta-2); font-size: 0.8125rem; margin-top: 0.3rem; max-width: 64ch; }
+.bloco__corpo { display: grid; gap: 0.875rem; margin-top: 1.1rem; }
+.dupla { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.875rem; }
+
+/* --------------------------------------------------------------- campos --- */
+.campo { display: grid; gap: 0.3rem; }
+.campo > span { font-size: 0.75rem; font-weight: 600; color: var(--tinta-2); }
+.campo > small { font-size: 0.75rem; color: var(--tinta-3); }
+
+input[type="text"], input[type="url"], input[type="date"], input[type="number"], textarea, select {
+  width: 100%;
+  background: var(--aco-fundo);
+  border: 1px solid var(--linha-fina);
+  color: var(--luz);
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--latao); outline: none; }
+textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; font-size: 0.875rem; }
+
+.cor { display: flex; gap: 0.5rem; align-items: center; }
+.cor input[type="color"] { width: 46px; height: 38px; padding: 0; border: 1px solid var(--linha-fina); background: var(--aco-fundo); cursor: pointer; }
+.cor input[type="text"] { font-variant-numeric: tabular-nums; text-transform: uppercase; }
+
+.caixa-sim { display: flex; align-items: center; gap: 0.5rem; }
+.caixa-sim input { width: 17px; height: 17px; accent-color: var(--sinal); }
+.caixa-sim span { font-size: 0.8125rem; font-weight: 600; color: var(--tinta-2); }
+
+/* imagem: campo de texto + biblioteca + prévia */
+.img-campo { display: grid; gap: 0.4rem; }
+.img-campo__linha { display: flex; gap: 0.4rem; align-items: center; }
+.img-campo__previa {
+  width: 56px; height: 56px; flex: 0 0 auto;
+  border: 1px solid var(--linha-fina); background: var(--aco-fundo);
+  display: grid; place-items: center; overflow: hidden;
+}
+.img-campo__previa img { width: 100%; height: 100%; object-fit: contain; }
+.img-campo__previa span { font-size: 0.625rem; color: var(--tinta-3); text-align: center; }
+
+/* --------------------------------------------------------------- listas --- */
+.lista { display: grid; gap: 0.75rem; }
+.item {
+  --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina);
+  padding: 0.875rem;
+}
+.item__topo { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+.item__titulo { font-family: var(--fonte-display); font-weight: 700; font-size: 0.9375rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item__ordem { font-size: 0.75rem; color: var(--latao); font-weight: 700; font-variant-numeric: tabular-nums; }
+.item__corpo { display: grid; gap: 0.75rem; }
+.lista__vazia { color: var(--tinta-3); font-size: 0.875rem; }
+
+/* --------------------------------------------------------------- mídia ---- */
+.zona {
+  --corte: var(--corte-m); --chf-borda: var(--linha); --chf-fundo: var(--aco-fundo);
+  padding: 1.75rem; text-align: center;
+}
+.zona[data-sobre="sim"] { --chf-borda: var(--sinal); --chf-anel: 2px; }
+.zona p { color: var(--tinta-2); font-size: 0.875rem; }
+
+.biblioteca { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+.arquivo { --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina); padding: 0.5rem; display: grid; gap: 0.4rem; }
+.arquivo__previa { aspect-ratio: 1; background: var(--aco); display: grid; place-items: center; overflow: hidden; }
+.arquivo__previa img { width: 100%; height: 100%; object-fit: contain; }
+.arquivo__nome { font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arquivo__meta { font-size: 0.6875rem; color: var(--tinta-3); }
+.arquivo__acoes { display: flex; gap: 0.3rem; }
+.arquivo__acoes .btn { flex: 1; justify-content: center; }
+
+/* --------------------------------------------------------------- diálogo -- */
+.escolher { border: 0; padding: 0; background: transparent; max-width: min(760px, 94vw); width: 100%; }
+.escolher::backdrop { background: color-mix(in srgb, #050B0E 78%, transparent); }
+.escolher__caixa { --corte: var(--corte-g); --chf-borda: var(--linha); padding: 1.25rem; max-height: 82vh; overflow: auto; }
+.escolher__topo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.escolher__topo h2 { flex: 1; font-size: 1.1rem; }
+
+.recado { --corte: var(--corte-p); --chf-fundo: var(--latao-fundo); --chf-borda: var(--latao); padding: 0.75rem 1rem; font-size: 0.875rem; }
+.recado--erro { --chf-fundo: var(--sinal-fundo); --chf-borda: var(--sinal); }
+.recado strong { color: var(--latao); }
+.recado--erro strong { color: var(--sinal-tinta); }
+
+@media (max-width: 860px) {
+  .corpo { grid-template-columns: minmax(0, 1fr); }
+  .abas { position: static; flex-direction: row; overflow-x: auto; gap: 0.3rem; }
+  .abas button { border-left: 0; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .abas button[aria-selected="true"] { border-left: 0; border-bottom-color: var(--sinal); }
+}
+
+/* seletor de elo na moderação do ranking */
+.mod-elo {
+  flex: 0 0 auto; width: auto; max-width: 11rem;
+  background: var(--aco-fundo); border: 1px solid var(--linha-fina);
+  color: var(--luz); font: inherit; font-size: 0.75rem; padding: 0.25rem 0.4rem;
+}
+.mod-elo:focus { border-color: var(--latao); outline: none; }
+
+/* ------------------------------------------------- nível de um jogador --- */
+/* O apelido à esquerda, o resumo à direita; o controle fica na linha de
+   baixo para o nome não encolher quando o resumo cresce. */
+.item__meta {
+  margin-left: auto; font-size: 0.75rem; color: var(--tinta-3);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.item__acoes { display: flex; align-items: flex-end; gap: 0.5rem; flex-wrap: wrap; }
+.mod-nivel__rot { display: grid; gap: 2px; }
+.mod-nivel__rot span {
+  font-size: 0.625rem; color: var(--tinta-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.mod-nivel {
+  width: 5rem; background: var(--aco); color: var(--luz);
+  border: var(--borda) solid var(--linha-fina);
+  font: inherit; font-size: 0.875rem; padding: 0.35rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.mod-nivel:focus-visible { outline: 2px solid var(--sinal); outline-offset: 1px; }

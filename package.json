@@ -1,0 +1,15 @@
+{
+  "name": "estande-valorant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Estande — treino de mira e dados ao vivo do VALORANT no Brasil",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^3.0.0"
+  }
+}

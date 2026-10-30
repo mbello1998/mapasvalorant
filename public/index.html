@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estande — treino de mira e dados ao vivo do VALORANT no Brasil</title>
+<meta name="description" content="Aqueça a mira em três exercícios e veja o estado real do VALORANT no Brasil: patch no ar, ato em andamento e os lançamentos do dia.">
+<meta name="theme-color" content="#16262E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316262E'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23FF4655' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23FF4655'/%3E%3C/svg%3E" id="favicon">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Estande — treino de mira do VALORANT">
+<meta property="og:description" content="Sete exercícios de mira e o estado real do jogo no Brasil.">
+</head>
+<body>
+
+<a class="pulo" href="#estande">Pular para o estande</a>
+
+<!-- O trilho fica fixo na lateral no desktop e vira barra no topo no celular. -->
+<nav class="trilho" aria-label="Seções do site">
+  <a class="marca" href="#topo" id="marca">
+    <span class="marca__sigla" data-campo="site.nome">Estande</span>
+    <span class="marca__sufixo" data-campo="site.sufixo">BR</span>
+  </a>
+  <div class="trilho__nav" id="nav"></div>
+  <div class="trilho__pe" id="contaTrilho"></div>
+  <div class="trilho__pe trilho__pe--fim">
+    <a class="trilho__eng" href="admin.html">Painel</a>
+  </div>
+</nav>
+
+<main class="palco" id="topo">
+
+  <!-- ============================================================= hero -->
+  <!-- O herói é o gesto do jogo: cinco alvos, clicáveis ali mesmo. -->
+  <header class="hero" id="hero">
+    <div class="hero__arte" id="heroArte" aria-hidden="true" hidden></div>
+
+    <div class="hero__texto">
+      <h1 data-campo="hero.titulo">Cinco alvos antes de entrar na fila</h1>
+      <p class="hero__linha" data-campo="hero.texto">
+        Ninguém entra em partida com a mão fria. Clique nos cinco alvos ao lado e
+        veja seu tempo de reação agora — depois escolha um exercício completo.
+      </p>
+      <div class="hero__acoes">
+        <a class="btn btn--forte btn--g chf" id="ctaPrimario" href="#estande">Ir para o estande</a>
+        <a class="btn btn--vazio btn--g chf" id="ctaSecundario" href="#lancamentos">Ver o que mudou</a>
+      </div>
+    </div>
+
+    <div class="hero__alvo">
+      <div class="calib chf" id="calib">
+        <div class="calib__campo" id="calibCampo">
+          <p class="calib__convite" id="calibConvite">
+            Clique em qualquer lugar para soltar o primeiro alvo
+          </p>
+        </div>
+      </div>
+      <div class="calib__leitura" id="calibLeitura" aria-live="polite">
+        <div class="leitura leitura--sinal">
+          <span class="leitura__val" id="calibMedia">—</span>
+          <span class="leitura__rot">reação média</span>
+        </div>
+        <div class="leitura">
+          <span class="leitura__val" id="calibMelhor">—</span>
+          <span class="leitura__rot">melhor clique</span>
+        </div>
+        <div class="leitura leitura--latao">
+          <span class="leitura__val" id="calibProgresso">0/5</span>
+          <span class="leitura__rot">alvos estourados</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================== ao vivo -->
+  <section class="faixa faixa--fina aovivo" id="aovivo" aria-labelledby="aovivoTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="aovivoTit" data-campo="aovivo.titulo">O que está no ar</h2>
+        <p data-campo="aovivo.texto">Lido direto dos servidores da Riot a cada carregamento desta página.</p>
+        <span class="titulo-secao__conta" id="aovivoQuando"></span>
+      </div>
+      <div class="aovivo__grade" id="aovivoGrade">
+        <div class="ficha"><span class="carregando">Consultando os servidores…</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== atalhos -->
+  <section class="faixa faixa--fina portais" aria-label="Outras áreas do site">
+    <div class="limite portais__grade">
+      <a class="portal chf" href="linha.html">
+        <span class="portal__nome">A Linha de Tiro</span>
+        <span class="portal__texto">Escolha agente, arma e skin. Cadência, carregador e dano por distância são os reais do jogo.</span>
+        <span class="portal__ir">Entrar na linha</span>
+      </a>
+      <a class="portal chf" href="arsenal.html">
+        <span class="portal__nome">Arsenal</span>
+        <span class="portal__texto">Mil e quatrocentas skins com níveis, cromas e vídeo. Monte o loadout e veja quanto sai.</span>
+        <span class="portal__ir">Abrir o arsenal</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ========================================================= ranking -->
+  <section class="faixa faixa--fina ranking-inicio" id="rankingInicio" aria-labelledby="rankTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="rankTit" data-campo="ranking.titulo">Ranking</h2>
+        <p data-campo="ranking.texto">O desempenho de quem treina aqui, com a patente que esse nível de mira costuma acompanhar.</p>
+        <a class="titulo-secao__conta" href="ranking.html">tabela completa</a>
+      </div>
+      <div class="ranking-inicio__corpo" id="rankInicioCorpo">
+        <p class="carregando">Carregando o ranking…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================== estande -->
+  <section class="faixa estande" id="estande" data-luz="apagada" aria-labelledby="estandeTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="estandeTit" data-campo="estande.titulo">Sete exercícios, trinta segundos cada</h2>
+        <p data-campo="estande.texto">Cada um treina um gesto diferente. Passe por todos uma vez e repita o que estiver pior.</p>
+      </div>
+
+      <div class="estande__modos" id="modos" role="group" aria-label="Escolha o exercício"></div>
+
+      <div class="arena">
+        <div class="arena__campo chf" id="arenaCampo">
+          <canvas class="arena__tela" id="tela" width="960" height="600"
+                  aria-label="Campo de treino. Use o mouse para mirar e clicar nos alvos."></canvas>
+
+          <div class="arena__capa" id="capa">
+            <h3 id="capaTitulo">Gridshot</h3>
+            <p id="capaTexto">Dois alvos sempre na tela. Estoure um e o próximo nasce em outro lugar.</p>
+            <div class="arena__contagem" id="contagem" hidden>3</div>
+            <button class="btn btn--forte btn--g chf" id="btnComecar" type="button">Acender as luzes</button>
+            <p id="capaResultado" class="carregando" aria-live="polite"></p>
+            <div class="elo-treino chf" id="capaElo" hidden aria-live="polite"></div>
+            <div class="xp-ganho" id="capaXp" hidden aria-live="polite"></div>
+            <div class="capa-convite" id="capaConvite" hidden></div>
+          </div>
+        </div>
+
+        <aside class="arena__hud" aria-label="Resultados da sessão">
+          <div class="hud__fichas">
+            <div class="hud__ficha">
+              <div class="hud__val hud__val--sinal" id="hudPrincipal">—</div>
+              <div class="hud__rot" id="hudPrincipalRot">alvos por segundo</div>
+            </div>
+            <div class="hud__ficha">
+              <div class="hud__val" id="hudPrecisao">—</div>
+              <div class="hud__rot">precisão</div>
+            </div>
+            <div class="hud__ficha">
+              <div class="hud__val" id="hudAcertos">0</div>
+              <div class="hud__rot">acertos</div>
+            </div>
+            <div class="hud__ficha">
+              <div class="hud__val" id="hudTempo">30</div>
+              <div class="hud__rot">segundos restantes</div>
+            </div>
+            <div class="hud__ficha hud__ficha--larga">
+              <div class="hud__val hud__val--latao" id="hudRecorde">—</div>
+              <div class="hud__rot" id="hudRecordeRot">seu recorde neste exercício</div>
+            </div>
+          </div>
+
+          <!-- Série única, então sem legenda: o título nomeia o que está no gráfico. -->
+          <div class="hist">
+            <div class="hist__titulo" id="histTitulo">Precisão das últimas 12 sessões</div>
+            <div class="hist__env">
+              <svg class="hist__grafico" id="hist" viewBox="0 0 260 72"
+                   role="img" aria-labelledby="histTitulo" aria-describedby="histResumo"></svg>
+              <div class="hist__dica" id="histDica" hidden></div>
+            </div>
+            <p class="hist__vazio" id="histResumo">Faça uma sessão para começar o histórico.</p>
+          </div>
+
+          <div class="auto" id="autoRanking"></div>
+
+          <!-- O estande atira de Vandal, e tiro é barulho: quem abre a página
+               precisa poder calar isso sem sair dela. O mesmo controle da
+               Linha de Tiro, guardado no mesmo lugar do navegador. -->
+          <div class="som">
+            <button class="som__btn chf" type="button" id="btnSom" aria-pressed="true">
+              <span id="somIcone" aria-hidden="true">&#9679;</span>
+              <span id="somRotulo">Som ligado</span>
+            </button>
+            <label class="som__nivel">
+              <span class="oculto">Volume</span>
+              <input type="range" id="somVolume" min="0" max="100" step="5" value="70">
+            </label>
+          </div>
+
+          <div class="config">
+            <label class="config__campo">
+              <span>Tamanho do alvo <b class="config__valor" id="valTamanho">26 px</b></span>
+              <input type="range" id="cfgTamanho" min="14" max="54" step="2" value="26">
+            </label>
+            <label class="config__campo">
+              <span>Duração <b class="config__valor" id="valDuracao">30 s</b></span>
+              <input type="range" id="cfgDuracao" min="15" max="90" step="5" value="30">
+            </label>
+            <div class="config__campo">
+              <span>Mira</span>
+              <div class="config__mira" id="cfgMira" role="group" aria-label="Estilo da mira"></div>
+            </div>
+          </div>
+
+          <!-- Lê o movimento do mouse durante o treino e diz se a
+               sensibilidade está alta ou baixa demais para a sua mão. -->
+          <div class="sens chf" id="sensPainel" aria-live="polite"></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================== lançamentos -->
+  <section class="faixa" id="lancamentos" aria-labelledby="lancTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="lancTit" data-campo="noticias.titulo">Direto do site oficial</h2>
+        <p data-campo="noticias.texto">Coletado de playvalorant.com a cada duas horas. O que você publica à mão aparece junto, no mesmo feed.</p>
+        <span class="titulo-secao__conta" id="feedNota" hidden></span>
+      </div>
+      <div class="filtros" id="feedFiltros" role="group" aria-label="Filtrar notícias por categoria"></div>
+      <div class="feed" id="feed">
+        <p class="carregando">Lendo o site oficial…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================== agentes -->
+  <section class="faixa" id="agentes" aria-labelledby="agTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="agTit" data-campo="agentes.titulo">Agentes em português</h2>
+        <p data-campo="agentes.texto">Funções, habilidades e nomes como aparecem no cliente brasileiro.</p>
+        <span class="titulo-secao__conta" id="agConta"></span>
+      </div>
+      <div class="filtros" id="agFiltros" role="group" aria-label="Filtrar por função"></div>
+      <div class="agentes" id="agGrade">
+        <p class="carregando">Carregando agentes…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ mapas -->
+  <section class="faixa faixa--nua" id="mapas" aria-labelledby="mapTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="mapTit" data-campo="mapas.titulo">Mapas</h2>
+        <p data-campo="mapas.texto">Toda a rotação e os mapas fora dela, com a arte oficial.</p>
+        <span class="titulo-secao__conta" id="mapConta"></span>
+      </div>
+      <div class="mapas" id="mapGrade">
+        <p class="carregando">Carregando mapas…</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape palco">
+  <div class="limite rodape__grade">
+    <div>
+      <p class="rodape__texto" data-campo="rodape.texto"></p>
+      <p class="rodape__aviso" data-campo="rodape.aviso"></p>
+    </div>
+    <div class="rodape__links" id="rodapeLinks"></div>
+  </div>
+</footer>
+
+<!-- A entrada no exercício. A arte de cada modo já traz título, dica e uma
+     barra desenhada; por isso ela aparece inteira, sem corte, e a única coisa
+     que vai por cima é a barra de verdade, colada na borda da tela. -->
+<div class="carga-estande" id="cargaEstande" hidden aria-hidden="true">
+  <div class="carga-estande__arte" id="cargaEstandeArte"></div>
+  <p class="oculto" id="cargaEstandeTexto" role="status"></p>
+  <div class="carga-estande__barra"><b id="cargaEstandeBarra"></b></div>
+</div>
+
+<dialog class="gaveta" id="gaveta" aria-labelledby="gavetaNome">
+  <div class="gaveta__caixa chf" id="gavetaCaixa"></div>
+</dialog>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

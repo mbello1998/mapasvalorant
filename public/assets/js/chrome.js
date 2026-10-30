@@ -1,0 +1,170 @@
+// O que toda página do site tem em comum: tema, identidade, trilho de navegação
+// e rodapé — todos saindo do conteúdo que o painel edita.
+
+export const $ = (id) => document.getElementById(id);
+
+/** Lê "hero.ctaPrimario.rotulo" dentro do objeto de conteúdo. */
+export function caminho(obj, rota) {
+  return rota.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
+}
+
+export function texto(el, valor) {
+  if (el && typeof valor === "string" && valor.trim()) el.textContent = valor;
+}
+
+/**
+ * "2026-10-23" sozinho é lido como meia-noite UTC, o que no horário de Brasília
+ * cai no dia 22. Datas sem hora são do calendário, não de um instante: fixamos
+ * meio-dia local para o dia escrito ser o dia mostrado.
+ */
+export function comoData(valor) {
+  if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    return new Date(`${valor}T12:00:00`);
+  }
+  return new Date(valor);
+}
+
+/**
+ * Textos vindos do cliente da Riot carregam a marcação interna do jogo
+ * (<whitebold>…</>). Ela não quer dizer nada fora dele.
+ */
+export function semMarcacao(valor) {
+  return typeof valor === "string"
+    ? valor.replace(/<\/?[^<>]*>/g, "").replace(/\s{2,}/g, " ").trim()
+    : "";
+}
+
+export function elemento(tag, props = {}, filhos = []) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") el.className = v;
+    else if (k === "texto") el.textContent = v;
+    else if (k === "estilo") el.style.cssText = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (v !== undefined && v !== null && v !== false) el.setAttribute(k, v === true ? "" : v);
+  }
+  el.append(...[].concat(filhos).filter(Boolean));
+  return el;
+}
+
+/* ------------------------------------------------------ tema e identidade -- */
+
+export function aplicarTema(tema = {}) {
+  const mapa = {
+    aco: "--aco", acoAlto: "--aco-alto", linha: "--linha",
+    luz: "--luz", sinal: "--sinal", latao: "--latao",
+  };
+  for (const [chave, token] of Object.entries(mapa)) {
+    const valor = tema[chave];
+    if (typeof valor === "string" && /^#[0-9a-fA-F]{6}$/.test(valor)) {
+      document.documentElement.style.setProperty(token, valor);
+    }
+  }
+  // A linha fina e o vermelho de texto acompanham, para o painel não precisar
+  // editar seis tokens só para mudar a cor base.
+  if (tema.linha) document.documentElement.style.setProperty("--linha-fina", tema.linha);
+  if (tema.sinal) document.documentElement.style.setProperty("--sinal-tinta", tema.sinal);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta && tema.aco) meta.content = tema.aco;
+}
+
+export function aplicarIdentidade(c, { titulo } = {}) {
+  const nome = c.site?.nome ?? "Estande";
+  document.title = titulo ? `${titulo} — ${nome}` : `${nome} — ${c.site?.tagline ?? ""}`.replace(/ — $/, "");
+
+  const desc = document.querySelector('meta[name="description"]');
+  if (desc && c.site?.descricao) desc.content = c.site.descricao;
+
+  const icone = $("favicon");
+  if (icone && c.site?.favicon) icone.href = c.site.favicon;
+
+  const marca = $("marca");
+  if (marca && c.site?.logoUrl) {
+    marca.replaceChildren(elemento("img", {
+      class: "marca__logo", src: c.site.logoUrl, alt: nome,
+    }));
+  } else if (marca) {
+    const sigla = marca.querySelector(".marca__sigla");
+    const sufixo = marca.querySelector(".marca__sufixo");
+    texto(sigla, nome);
+    texto(sufixo, c.site?.sufixo);
+  }
+
+  for (const el of document.querySelectorAll("[data-campo]")) {
+    texto(el, caminho(c, el.dataset.campo));
+  }
+}
+
+/* --------------------------------------------------------------- trilho --- */
+
+/**
+ * Monta o trilho. `aqui` é o arquivo da página atual, para o link dela ficar
+ * marcado mesmo sem rolagem — nas páginas que não são a inicial, os âncoras
+ * viram links de volta para ela.
+ */
+export function montarNav(itens = [], aqui = "index.html") {
+  const nav = $("nav");
+  if (!nav) return;
+  nav.replaceChildren();
+
+  const naInicial = aqui === "index.html";
+
+  for (const item of itens) {
+    if (!item?.rotulo || !item?.href) continue;
+    const ancora = item.href.startsWith("#");
+    const a = elemento("a", {
+      class: "trilho__link",
+      href: ancora && !naInicial ? `index.html${item.href}` : item.href,
+      texto: item.rotulo,
+    });
+    if (!ancora && item.href === aqui) a.setAttribute("aria-current", "true");
+    nav.append(a);
+  }
+
+  if (naInicial) observarSecoes(nav);
+}
+
+/** Marca o link da seção visível. Um observer, não um listener de rolagem. */
+function observarSecoes(nav) {
+  const alvos = [...nav.querySelectorAll(".trilho__link")]
+    .filter((a) => a.getAttribute("href")?.startsWith("#"))
+    .map((a) => ({ a, secao: document.querySelector(a.getAttribute("href")) }))
+    .filter((p) => p.secao);
+  if (!alvos.length) return;
+
+  const obs = new IntersectionObserver((entradas) => {
+    for (const e of entradas) {
+      if (!e.isIntersecting) continue;
+      for (const { a, secao } of alvos) {
+        if (secao === e.target) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      }
+    }
+  }, { rootMargin: "-45% 0px -45% 0px" });
+
+  for (const { secao } of alvos) obs.observe(secao);
+}
+
+/* --------------------------------------------------------------- rodapé --- */
+
+export function montarRodape(c) {
+  const caixa = $("rodapeLinks");
+  if (!caixa) return;
+  caixa.replaceChildren();
+  for (const l of c.links ?? []) {
+    if (!l?.rotulo || !l?.url) continue;
+    const externo = /^https?:/.test(l.url);
+    caixa.append(elemento("a", {
+      href: l.url, texto: l.rotulo, rel: "noopener",
+      ...(externo ? { target: "_blank" } : {}),
+    }));
+  }
+}
+
+/** Tudo que toda página faz igual, numa chamada. */
+export function vestirPagina(conteudo, { aqui, titulo } = {}) {
+  aplicarTema(conteudo.tema);
+  aplicarIdentidade(conteudo, { titulo });
+  montarNav(conteudo.nav, aqui);
+  montarRodape(conteudo);
+}

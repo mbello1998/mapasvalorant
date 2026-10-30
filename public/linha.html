@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Linha de Tiro — Estande</title>
+<meta name="description" content="Minigame estilo campo de treino do VALORANT: escolha agente, arma e skin. Cadência, carregador, recarga e dano por distância são os reais do jogo.">
+<meta name="theme-color" content="#16262E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316262E'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23FF4655' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23FF4655'/%3E%3C/svg%3E" id="favicon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="pulo" href="#campo">Pular para o campo</a>
+
+<nav class="trilho" aria-label="Seções do site">
+  <a class="marca" href="index.html" id="marca">
+    <span class="marca__sigla">Estande</span>
+    <span class="marca__sufixo">BR</span>
+  </a>
+  <div class="trilho__nav" id="nav"></div>
+  <div class="trilho__pe" id="contaTrilho"></div>
+  <div class="trilho__pe trilho__pe--fim">
+    <a class="trilho__eng" href="admin.html">Painel</a>
+  </div>
+</nav>
+
+<main class="palco linha" id="linha">
+
+  <header class="faixa faixa--fina cabeca">
+    <div class="limite">
+      <h1 data-campo="linha.titulo">A Linha de Tiro</h1>
+      <p class="cabeca__linha" data-campo="linha.texto">
+        Escolha o agente, escolha a arma e a skin, e atire. Cadência, carregador,
+        recarga e dano por distância vêm das estatísticas reais de cada arma.
+      </p>
+    </div>
+  </header>
+
+  <!-- ========================================================= preparo -->
+  <section class="faixa preparo" id="preparo" aria-labelledby="preparoTit">
+    <div class="limite">
+      <h2 class="oculto" id="preparoTit">Preparo</h2>
+
+      <div class="preparo__grade">
+        <div class="escolha">
+          <div class="escolha__topo">
+            <h3>Agente</h3>
+            <span class="escolha__conta" id="agenteEscolhido">nenhum</span>
+          </div>
+          <div class="filtros" id="funcoes" role="group" aria-label="Filtrar agentes por função"></div>
+          <div class="fileira" id="agentes">
+            <p class="carregando">Carregando agentes…</p>
+          </div>
+          <p class="escolha__nota" id="perkNota"></p>
+        </div>
+
+        <div class="escolha">
+          <div class="escolha__topo">
+            <h3>Arma</h3>
+            <span class="escolha__conta" id="armaEscolhida">nenhuma</span>
+          </div>
+          <div class="filtros" id="categorias" role="group" aria-label="Filtrar armas por categoria"></div>
+          <div class="fileira" id="armas">
+            <p class="carregando">Carregando armas…</p>
+          </div>
+        </div>
+
+        <div class="escolha">
+          <div class="escolha__topo">
+            <h3>Skin</h3>
+            <span class="escolha__conta" id="skinEscolhida">padrão</span>
+          </div>
+          <label class="busca__campo">
+            <span class="oculto">Buscar skin desta arma</span>
+            <input type="search" id="buscaSkin" placeholder="Buscar skin desta arma" autocomplete="off">
+          </label>
+          <div class="fileira fileira--skins" id="skins">
+            <p class="carregando">Escolha uma arma primeiro.</p>
+          </div>
+          <p class="escolha__nota">
+            A skin é só a arte — quem manda na jogabilidade é a arma.
+            <a href="arsenal.html">Monte um loadout no Arsenal</a> e ele vem escolhido para cá.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================== campo -->
+  <section class="faixa faixa--nua campo" id="campo" data-luz="apagada" aria-labelledby="campoTit">
+    <div class="limite">
+      <h2 class="oculto" id="campoTit">Campo de tiro</h2>
+
+      <div class="campo__grade">
+        <div class="campo__tela chf" id="campoTela">
+          <canvas class="campo__canvas" id="tela" width="1000" height="600"
+                  aria-label="Campo de tiro. Use o mouse para mirar e clicar nos bonecos."></canvas>
+
+          <div class="campo__hud" id="hudJogo" hidden>
+            <div class="hud-arma">
+              <img class="hud-agente" id="hudAgente" alt="" hidden>
+              <img class="hud-arma__arte" id="hudArte" alt="" hidden>
+              <div class="hud-arma__texto">
+                <span class="hud-arma__nome" id="hudArma">—</span>
+                <span class="hud-arma__skin" id="hudSkin"></span>
+              </div>
+            </div>
+            <div class="hud-muni">
+              <span class="hud-muni__atual" id="muniAtual">0</span>
+              <span class="hud-muni__barra"><b id="muniBarra"></b></span>
+              <span class="hud-muni__aviso" id="muniAviso" hidden>Recarregando…</span>
+            </div>
+          </div>
+
+          <div class="campo__capa" id="capa">
+            <h3 id="capaTitulo">Pronto quando você estiver</h3>
+            <p id="capaTexto">Escolha agente e arma acima. Clique nos bonecos: cabeça, corpo e perna doem diferente, e a distância muda o dano.</p>
+            <div class="campo__contagem" id="contagem" hidden>3</div>
+            <button class="btn btn--forte btn--g chf" type="button" id="btnComecar">Acender as luzes</button>
+            <p class="campo__resultado" id="resultado" aria-live="polite"></p>
+            <div class="xp-ganho" id="linhaXp" hidden aria-live="polite"></div>
+
+            <div class="auto" id="autoRanking"></div>
+            <div class="som">
+              <button class="som__btn chf" type="button" id="btnSom" aria-pressed="true">
+                <span id="somIcone" aria-hidden="true">&#9679;</span>
+                <span id="somRotulo">Som ligado</span>
+              </button>
+              <label class="som__nivel">
+                <span class="oculto">Volume</span>
+                <input type="range" id="somVolume" min="0" max="100" step="5" value="70">
+              </label>
+            </div>
+            <p class="campo__nota">
+              Os tiros são sintetizados no navegador a partir das estatísticas de
+              cada arma. A faixa da tela de entrada é um arquivo à parte, trocável
+              pelo painel.
+            </p>
+          </div>
+        </div>
+
+        <aside class="campo__painel" aria-label="Resultados da rodada">
+          <div class="placar">
+            <div class="placar__ficha placar__ficha--larga">
+              <div class="placar__val placar__val--sinal" id="pAbates">0</div>
+              <div class="placar__rot">abates</div>
+            </div>
+            <div class="placar__ficha">
+              <div class="placar__val" id="pHs">—</div>
+              <div class="placar__rot">na cabeça</div>
+            </div>
+            <div class="placar__ficha">
+              <div class="placar__val" id="pPrecisao">—</div>
+              <div class="placar__rot">precisão</div>
+            </div>
+            <div class="placar__ficha">
+              <div class="placar__val" id="pDano">0</div>
+              <div class="placar__rot">dano total</div>
+            </div>
+            <div class="placar__ficha">
+              <div class="placar__val" id="pTempo">60</div>
+              <div class="placar__rot">segundos</div>
+            </div>
+            <div class="placar__ficha placar__ficha--larga">
+              <div class="placar__val placar__val--latao" id="pRecorde">—</div>
+              <div class="placar__rot" id="pRecordeRot">seu recorde com esta arma</div>
+            </div>
+          </div>
+
+          <div class="ficha-arma chf" id="fichaArma" hidden>
+            <h3 class="ficha-arma__titulo">Estatísticas reais</h3>
+            <dl class="ficha-arma__lista" id="statsArma"></dl>
+            <div class="dano" id="danoArma"></div>
+          </div>
+
+          <div class="ultima chf">
+            <h3 class="ultima__titulo">Últimos tiros</h3>
+            <ol class="ultima__lista" id="log">
+              <li class="ultima__vazio">Nada ainda.</li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape palco">
+  <div class="limite rodape__grade">
+    <div>
+      <p class="rodape__texto" data-campo="rodape.texto"></p>
+      <p class="rodape__aviso" data-campo="rodape.aviso"></p>
+    </div>
+    <div class="rodape__links" id="rodapeLinks"></div>
+  </div>
+</footer>
+
+<!-- Entrada no mapa. A arte e o retrato são os oficiais da Riot, servidos do
+     CDN dela como todas as outras imagens do site; o som é sintetizado. -->
+<div class="carregando-mapa" id="telaCarga" hidden aria-hidden="true">
+  <div class="carga__arte" id="cargaArte"></div>
+  <div class="carga__veu"></div>
+  <div class="carga__corpo">
+    <div class="carga__topo">
+      <span class="carga__etiqueta">Entrando no mapa</span>
+      <h2 class="carga__mapa" id="cargaMapa">The Range</h2>
+    </div>
+
+    <div class="carga__agente">
+      <img class="carga__retrato" id="cargaRetrato" alt="" hidden>
+      <div class="carga__ficha">
+        <span class="carga__nome" id="cargaNome"></span>
+        <span class="carga__funcao" id="cargaFuncao"></span>
+        <span class="carga__arma" id="cargaArma"></span>
+      </div>
+    </div>
+
+    <div class="carga__barra"><b id="cargaBarra"></b></div>
+    <p class="carga__dica" id="cargaDica"></p>
+  </div>
+</div>
+
+<script type="module" src="assets/js/linha.js"></script>
+</body>
+</html>

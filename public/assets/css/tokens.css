@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Estande — tokens
+   Paleta "aço frio": a base tem croma de verdade (azul-esverdeado), não é um
+   preto disfarçado. Três acentos em tensão — sinal (vermelho), latão (ranque,
+   recorde) e luz (o estande aceso) — em vez de um acento único sobre escuro.
+   Contrastes conferidos: os tokens de MARCA (--sinal) e de TEXTO
+   (--sinal-tinta) são diferentes de propósito, porque #FF4655 como texto sobre
+   painel dá 3,66:1 e reprova no AA.
+   ========================================================================== */
+
+:root {
+  /* superfícies */
+  --aco:        #16262E;
+  --aco-fundo:  #101D23;
+  --aco-alto:   #1F3845;
+  --linha:      #2E5361;
+  --linha-fina: #24414F;
+
+  /* tinta */
+  --luz:        #E9EDE6;   /* 13,1:1 sobre --aco */
+  --tinta-2:    #A9BEC6;   /*  8,1:1 */
+  --tinta-3:    #9DB3BC;   /*  ~5:1 — mínimo para texto pequeno */
+
+  /* acentos */
+  --sinal:       #FF4655;  /* marcas, alvos, barras — nunca texto pequeno */
+  --sinal-tinta: #FF6B78;  /* 5,7:1 sobre --aco */
+  --sinal-fundo: #3A1B22;
+  --latao:       #D4A24C;  /* 6,7:1 — recorde, ato, ranque */
+  --latao-fundo: #332616;
+  --verde:       #4FD1A5;
+  --ambar:       #E5B33A;
+
+  /* tipografia */
+  --fonte-display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
+  --fonte-texto:   "Barlow", system-ui, -apple-system, sans-serif;
+
+  --t-xs:  0.75rem;
+  --t-s:   0.8125rem;
+  --t-b:   1rem;
+  --t-m:   1.333rem;
+  --t-l:   1.777rem;
+  --t-xl:  2.369rem;
+  --t-2xl: 3.157rem;
+  --t-3xl: clamp(2.5rem, 7.5vw, 4.209rem);
+
+  /* ritmo */
+  --e-1: 0.25rem;
+  --e-2: 0.5rem;
+  --e-3: 0.875rem;
+  --e-4: 1.25rem;
+  --e-5: 2rem;
+  --e-6: 3rem;
+  --e-7: 4.5rem;
+  --e-8: 7rem;
+
+  /* o chanfro é a assinatura estrutural: nada tem raio de borda.
+     o tamanho do corte codifica hierarquia — corte grande = superfície
+     principal, corte pequeno = etiqueta. */
+  --corte-g: 22px;
+  --corte-m: 13px;
+  --corte-p: 7px;
+
+  --rail: 76px;
+  --medida: 68ch;         /* linha de texto abaixo de 80 caracteres */
+  --borda: 1px;
+}
+
+/* O estande aceso. Mesma estrutura, ambiente invertido: as luzes do campo de
+   tiro sobem. Os tokens são redefinidos na subárvore, então nenhum componente
+   precisa saber em que ambiente está. */
+[data-luz="acesa"] {
+  --aco:        #E9EDE6;
+  --aco-fundo:  #DADFD6;
+  --aco-alto:   #F4F6F2;
+  --linha:      #A8B6B0;
+  --linha-fina: #C3CDC6;
+
+  --luz:        #16262E;
+  --tinta-2:    #3F5C69;
+  --tinta-3:    #4E6B77;
+
+  --sinal:       #E03344;
+  --sinal-tinta: #BE2634;  /* 4,6:1 sobre o fundo claro */
+  --sinal-fundo: #F8DADD;
+  --latao:       #8A6420;
+  --latao-fundo: #F0E6D2;
+  --verde:       #11805F;
+  --ambar:       #8A6420;
+}

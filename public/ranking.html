@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ranking — Estande</title>
+<meta name="description" content="Ranking público do Estande: o desempenho de cada pessoa nos treinos de mira, com a patente estimada do VALORANT.">
+<meta name="theme-color" content="#16262E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316262E'/%3E%3Cpath d='M16 4l4 8 8 1-6 6 2 9-8-5-8 5 2-9-6-6 8-1z' fill='%23D4A24C'/%3E%3C/svg%3E" id="favicon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="pulo" href="#tabela">Pular para a tabela</a>
+
+<nav class="trilho" aria-label="Seções do site">
+  <a class="marca" href="index.html" id="marca">
+    <span class="marca__sigla">Estande</span>
+    <span class="marca__sufixo">BR</span>
+  </a>
+  <div class="trilho__nav" id="nav"></div>
+  <div class="trilho__pe" id="contaTrilho"></div>
+  <div class="trilho__pe trilho__pe--fim">
+    <a class="trilho__eng" href="admin.html">Painel</a>
+  </div>
+</nav>
+
+<main class="palco" id="topo">
+
+  <header class="faixa cabeca">
+    <div class="limite">
+      <h1 data-campo="ranking.titulo">Ranking</h1>
+      <p class="cabeca__linha" data-campo="ranking.texto">
+        O desempenho de quem treina aqui, com a patente que esse nível de mira
+        costuma acompanhar no VALORANT.
+      </p>
+      <p class="cabeca__aviso">
+        A patente é uma estimativa deste site, não uma medição da Riot. Mira é
+        uma parte do jogo e nem é a maior — posicionamento, utilidade e cabeça
+        fria contam tanto quanto. Tome como referência, não como veredito.
+      </p>
+    </div>
+  </header>
+
+  <!-- ====================================================== sua posição -->
+  <section class="faixa faixa--fina meu-elo" id="meuElo" aria-labelledby="meuEloTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="meuEloTit">Seu elo estimado</h2>
+        <p>Calculado dos seus recordes neste navegador. Nada daqui vai para o ranking sem você mandar.</p>
+      </div>
+      <div class="elo-painel" id="eloPainel">
+        <p class="carregando">Lendo seus recordes…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= cartões -->
+  <section class="faixa faixa--fina meus-cartoes" id="meusCartoes" aria-labelledby="cartoesTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="cartoesTit">Seus cartões</h2>
+        <p>Treinar dá XP, XP dá nível, e o nível libera cartões. O que você escolher aqui é o que aparece quando alguém passa o mouse no seu apelido na tabela.</p>
+      </div>
+      <div class="cartoes-area" id="cartoesArea">
+        <p class="carregando">Lendo seus cartões…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ tabela -->
+  <section class="faixa faixa--nua" id="tabela" aria-labelledby="tabelaTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="tabelaTit">Tabela pública</h2>
+        <p>Até cem posições por exercício, uma por apelido — a melhor de cada um.</p>
+        <span class="titulo-secao__conta" id="rankQuando"></span>
+      </div>
+
+      <div class="filtros" id="rankModos" role="group" aria-label="Escolher exercício"></div>
+
+      <div class="rank" id="rank">
+        <p class="carregando">Carregando o ranking…</p>
+      </div>
+
+      <p class="rank__aviso">
+        Publicar exige conta, então o apelido na tabela tem dono de verdade —
+        ninguém publica no nome de outro. Mas conta resolve identidade, não
+        honestidade: o site recusa o que é humanamente impossível e limita
+        reenvios, e ainda assim isto é um placar de treino entre amigos, não um
+        ranque oficial.
+      </p>
+    </div>
+  </section>
+
+  <!-- =========================================================== escala -->
+  <section class="faixa faixa--nua" id="escala" aria-labelledby="escalaTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="escalaTit">A escala</h2>
+        <p>As 25 patentes do VALORANT e o desempenho que o site associa a cada uma.</p>
+      </div>
+      <div class="escala" id="escalaGrade"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape palco">
+  <div class="limite rodape__grade">
+    <div>
+      <p class="rodape__texto" data-campo="rodape.texto"></p>
+      <p class="rodape__aviso" data-campo="rodape.aviso"></p>
+    </div>
+    <div class="rodape__links" id="rodapeLinks"></div>
+  </div>
+</footer>
+
+<dialog class="gaveta" id="gaveta" aria-labelledby="envioTit">
+  <form class="gaveta__caixa chf" id="formEnvio" method="dialog">
+    <h3 id="envioTit">Publicar no ranking</h3>
+    <p class="envio__resumo" id="envioResumo"></p>
+    <p class="envio__como">
+      Publicando como <strong id="envioComo"></strong> — o apelido da sua conta.
+      Para trocar, mude o apelido em <a href="#meuElo">Seu elo estimado</a>.
+    </p>
+    <p class="recado recado--erro chf" id="envioErro" hidden></p>
+    <div class="envio__acoes">
+      <button class="btn btn--vazio chf" type="button" id="envioCancelar">Cancelar</button>
+      <button class="btn btn--forte chf" type="submit" id="envioConfirmar">Publicar</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="assets/js/ranking.js"></script>
+</body>
+</html>

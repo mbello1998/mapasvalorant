@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel — Estande</title>
+<meta name="theme-color" content="#16262E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231F3845'/%3E%3Cpath d='M7 22h18M7 16h12M7 10h15' stroke='%23D4A24C' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+
+<!-- Tela de acesso. A chave fica só na sessão deste navegador. -->
+<div class="acesso" id="acesso">
+  <div class="acesso__caixa chf">
+    <h1>Painel do Estande</h1>
+    <p>
+      Informe a chave do painel para editar o site. Ela é a variável de ambiente
+      <code>ADMIN_KEY</code> configurada na Netlify.
+    </p>
+    <form id="formAcesso">
+      <label class="campo">
+        <span>Chave do painel</span>
+        <input type="password" id="chave" autocomplete="current-password" required
+               style="width:100%;background:var(--aco-fundo);border:1px solid var(--linha-fina);color:var(--luz);font:inherit;padding:.5rem .65rem">
+      </label>
+      <button class="btn btn--forte chf" type="submit">Entrar</button>
+      <p id="acessoErro" class="recado recado--erro chf" hidden></p>
+    </form>
+  </div>
+</div>
+
+<!-- Painel -->
+<div id="painelRaiz" hidden>
+  <header class="barra">
+    <span class="barra__marca">Estande <b>/ painel</b></span>
+    <span class="barra__estado" id="estado"></span>
+    <div class="barra__acoes">
+      <a class="btn chf" href="index.html" target="_blank" rel="noopener">Ver o site</a>
+      <button class="btn chf" type="button" id="btnBaixar">Baixar JSON</button>
+      <button class="btn btn--perigo chf" type="button" id="btnPadrao">Restaurar padrão</button>
+      <button class="btn btn--forte chf" type="button" id="btnSalvar">Publicar alterações</button>
+    </div>
+  </header>
+
+  <div class="corpo">
+    <nav class="abas" id="abas" role="tablist" aria-label="Seções do painel"></nav>
+    <div id="paineis"></div>
+  </div>
+</div>
+
+<dialog class="escolher" id="escolher">
+  <div class="escolher__caixa chf">
+    <div class="escolher__topo">
+      <h2>Escolher da biblioteca</h2>
+      <button class="btn chf" type="button" id="escolherFechar">Fechar</button>
+    </div>
+    <div class="biblioteca" id="escolherGrade"></div>
+  </div>
+</dialog>
+
+<script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>
