@@ -87,8 +87,8 @@ para a seção de agentes da inicial. De cada agente interessam `uuid`,
   "para": { "x": 0.31, "y": 0.22 },   // null quando tipo = "posicao"
   "titulo": "Smoke do Heaven do meio",
   "texto": "Encoste no canto da caixa, mire o topo do poste e solte.",
-  "imagem": "/api/media/pixel-ascent-clove-heaven.webp",  // opcional
-  "video": "https://www.youtube.com/watch?v=...",          // opcional
+  "imagens": ["/api/media/clove-heaven-1.webp"],  // até 3, em ordem
+  "video": "https://www.youtube.com/watch?v=...", // opcional
   "conferido": false,
   "criadoEm": "2026-10-30T23:00:00.000Z"
 }
@@ -105,6 +105,9 @@ Regras que o servidor aplica, não a tela:
 - `video` só aceita link `https`, e só de YouTube — um campo de URL livre num
   painel é um convite a colar qualquer coisa que depois é servida aos
   visitantes.
+- `imagens` é uma lista de até 3 caminhos servidos por `/api/media/`, em
+  ordem: onde ficar, onde mirar, o resultado. Um print só raramente ensina
+  um pixel, e três é o que cabe sem virar álbum.
 - Teto de 2000 pontos no total, para a lista caber numa leitura só.
 
 ### Onde fica
@@ -151,6 +154,10 @@ página já quebrou três vezes neste projeto).
    escolhido), lado (ataque / defesa / os dois). Sem agente escolhido, a tela
    mostra as posições do mapa e nenhuma util, que é a visão de quem está
    decidindo onde se colocar.
+   Mais um, que é o filtro que faz a diferença na prática: **clicar num lugar
+   do minimapa** deixa só o que sai dali ou cai ali. É como se procura de
+   verdade — "estou nesse canto, o que dá para fazer daqui" —, e sai de graça
+   porque cada ponto já guarda `de` e `para`.
 4. **Painel do ponto** — clicar num marcador abre, ao lado do mapa, o título, o
    texto, o print se houver e o vídeo se houver. Quando `conferido` é falso, o
    painel abre com um aviso dizendo que aquela entrada não foi testada em jogo.
@@ -218,7 +225,8 @@ Antes de dizer que está pronto:
 2. Um ponto cadastrado pelo painel do começo ao fim aparece na página pública,
    com linha, ícone, texto e aviso de não conferido.
 3. Editar e apagar esse ponto funcionam, e o apagado some da página.
-4. Os filtros de agente, habilidade e lado recortam o que deviam.
+4. Os filtros de agente, habilidade, lado e ponto no mapa recortam o que
+   deviam.
 5. A rota recusa, com a mensagem certa: sem chave, mapa inexistente,
    coordenada fora de 0–1, pixel sem destino, vídeo que não é do YouTube.
 6. A página abre e é usável num celular.
