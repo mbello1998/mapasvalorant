@@ -118,3 +118,44 @@ test("agente e habilidade com marcação continuam recusados", () => {
   assert.equal(normalizarPonto({ ...base, agente: "<b>x</b>" }, MAPAS).ok, false);
   assert.equal(normalizarPonto({ ...base, habilidade: "<i>" }, MAPAS).ok, false);
 });
+
+test("video com lixo depois do id é recusado e com &t=30s é aceito", () => {
+  const lixo = "https://youtu.be/abcdef\"><img src=x onerror=alert(1)>";
+  assert.equal(normalizarPonto({ ...base, video: lixo }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, video: "https://www.youtube.com/watch?v=abcdef123&x\"y" }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, video: "https://www.youtube.com/watch?v=abcdef12345&t=30s" }, MAPAS).ok, true);
+  assert.equal(normalizarPonto({ ...base, video: "https://youtu.be/abcdef12345?t=30" }, MAPAS).ok, true);
+});
+
+test("recusa para fora da faixa", () => {
+  assert.equal(erro(normalizarPonto({ ...base, para: { x: 1.4, y: 0.5 } }, MAPAS)), "Coordenada fora do mapa.");
+});
+
+test("posição ignora o para enviado e grava null", () => {
+  const r = normalizarPonto({ ...base, tipo: "posicao" }, MAPAS);
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(r.ponto.para, null);
+});
+
+test("agente e habilidade longos demais são recusados, não cortados", () => {
+  assert.equal(normalizarPonto({ ...base, agente: "a".repeat(64) }, MAPAS).ok, true);
+  assert.equal(normalizarPonto({ ...base, agente: "a".repeat(65) }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, habilidade: "a".repeat(60) }, MAPAS).ok, true);
+  assert.equal(normalizarPonto({ ...base, habilidade: "a".repeat(61) }, MAPAS).ok, false);
+});
+
+test("imagens com .. no caminho são recusadas", () => {
+  assert.equal(normalizarPonto({ ...base, imagens: ["/api/media/.."] }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, imagens: ["/api/media/a..b.webp"] }, MAPAS).ok, false);
+});
+
+test("imagens gravadas são cópia do array de quem chamou", () => {
+  const entrada = ["/api/media/x.webp"];
+  const r = normalizarPonto({ ...base, imagens: entrada }, MAPAS);
+  assert.equal(r.ok, true);
+  if (r.ok) {
+    assert.notEqual(r.ponto.imagens, entrada);
+    entrada.push("/api/media/y.webp");
+    assert.equal(r.ponto.imagens.length, 1);
+  }
+});

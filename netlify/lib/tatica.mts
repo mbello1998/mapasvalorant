@@ -44,8 +44,16 @@ export const LIMITE_PONTOS = 2000;
 const MAX_TITULO = 80;
 const MAX_TEXTO = 600;
 const MAX_IMAGENS = 3;
-const VIDEO = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{6,}/;
-const IMAGEM = /^\/api\/media\/[\w.-]+$/;
+// Ancorada no fim de propósito: o vídeo vira src/href na página pública, e sem
+// o `$` qualquer lixo (aspas, `>`) depois do id ficaria gravado. Só parâmetros
+// comuns (&t=30s) passam depois do id.
+const VIDEO = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{6,}([?&][\w=&.-]*)?$/;
+// Identificadores, não texto livre: cortar um uuid o transformaria em outro.
+const MAX_AGENTE = 64;
+const MAX_HABILIDADE = 60;
+// `..` fica de fora: a classe de caracteres aceita pontos e deixaria passar um
+// caminho que sobe de pasta.
+const IMAGEM = /^\/api\/media\/(?!.*\.\.)[\w.-]+$/;
 
 export const novoId = () => `p_${crypto.randomUUID().slice(0, 8)}`;
 
@@ -75,7 +83,8 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
 
   // Sem agente a tela mostra as posições do mapa e nenhuma util; essas posições
   // são pontos sem agente, então ausente, null e vazio viram null, não erro.
-  const agente = texto(b.agente).slice(0, 64) || null;
+  const agente = texto(b.agente) || null;
+  if (agente && agente.length > MAX_AGENTE) return falha("Agente inválido.");
   if (agente && /[<>]/.test(agente)) return falha("Nada de marcação no texto.");
 
   if (b.lado !== "ataque" && b.lado !== "defesa") return falha("Escolha ataque ou defesa.");
@@ -103,7 +112,10 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
   // dia alguém troque por innerHTML e herde dado sujo já gravado.
   if (/[<>]/.test(titulo) || /[<>]/.test(corpo)) return falha("Nada de marcação no texto.");
 
-  const habilidade = texto(b.habilidade).slice(0, 60) || null;
+  const habilidade = texto(b.habilidade) || null;
+  if (habilidade && habilidade.length > MAX_HABILIDADE) {
+    return falha(`A habilidade aceita até ${MAX_HABILIDADE} caracteres.`);
+  }
   if (habilidade && /[<>]/.test(habilidade)) return falha("Nada de marcação no texto.");
 
   const video = texto(b.video);
@@ -125,7 +137,7 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
       lado: b.lado, tipo: b.tipo,
       de, para,
       titulo, texto: corpo,
-      imagens: lista as string[],
+      imagens: [...(lista as string[])],
       video: video || null,
       conferido: b.conferido === true,
     },
