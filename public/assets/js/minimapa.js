@@ -52,14 +52,20 @@ export function pontosDoMapa(pontos, mapaUuid) {
 }
 
 /**
- * Os filtros de agente, habilidade e lado. Sem agente escolhido só entram as
- * posições: util sem saber de quem é não ensina nada, e uma tela cheia de
- * linhas de todos os agentes ao mesmo tempo seria ilegível.
+ * Os filtros de agente, habilidade e lado.
+ *
+ * Sem agente escolhido só entram as posições: util sem saber de quem é não
+ * ensina nada, e uma tela cheia de linhas de todos os agentes ao mesmo tempo
+ * seria ilegível. Com agente escolhido entram as utils dele e, junto, as
+ * posições que não são de agente nenhum: é justamente quando se estuda um
+ * agente que se precisa saber onde ficar no mapa. A habilidade recorta só o que
+ * é do agente; a posição genérica fica, porque não é util.
  */
 export function filtrarPontos(pontos, { agente = null, habilidade = null, lado = null } = {}) {
   return (pontos ?? []).filter((p) => {
     if (lado && p.lado !== lado) return false;
     if (!agente) return p.tipo === "posicao";
+    if (p.tipo === "posicao" && !p.agente) return true;
     if (p.agente !== agente) return false;
     return !habilidade || p.habilidade === habilidade;
   });
@@ -209,6 +215,7 @@ export function montarMinimapa(alvo, { mapa, pontos = [], agentes = [], aoEscolh
       const botao = elemento("button", {
         type: "button",
         class: `minimapa__ponto minimapa__ponto--${p.lado} minimapa__ponto--${p.tipo}`,
+        "data-foco": `ponto:${p.id}`,
         "aria-label": rotuloDoPonto(p, agentes),
         "aria-pressed": String(p.id === selecionado),
         title: p.titulo,

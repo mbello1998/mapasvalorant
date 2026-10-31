@@ -44,9 +44,9 @@ const gravarMapa = (uuid) => {
 
 /* --------------------------------------------------------------- pedaços -- */
 
-function pilula(rotulo, ativo, aoClicar) {
+function pilula(rotulo, ativo, foco, aoClicar) {
   return elemento("button", {
-    type: "button", class: "pilula chf", texto: rotulo,
+    type: "button", class: "pilula chf", texto: rotulo, "data-foco": foco,
     "aria-pressed": String(ativo), onclick: aoClicar,
   });
 }
@@ -143,7 +143,7 @@ function pintarLista(visiveis) {
   for (const p of visiveis) {
     lista.append(elemento("li", {}, [
       elemento("button", {
-        type: "button", class: "lista-pontos__item chf",
+        type: "button", class: "lista-pontos__item chf", "data-foco": `lista:${p.id}`,
         "aria-pressed": String(p.id === estado.selecionado),
         onclick: () => {
           escolherPonto(p);
@@ -181,18 +181,18 @@ function pintarFiltroHabilidade() {
 
   bloco.hidden = habilidades.length === 0;
   caixa.replaceChildren(
-    pilula("Todas", !estado.habilidade, () => { estado.habilidade = null; renderizar(); }),
+    pilula("Todas", !estado.habilidade, "habilidade:todas", () => { estado.habilidade = null; renderizar(); }),
     ...habilidades.map((h) =>
-      pilula(h.displayName, estado.habilidade === h.slot, () => { estado.habilidade = h.slot; renderizar(); })),
+      pilula(h.displayName, estado.habilidade === h.slot, `habilidade:${h.slot}`, () => { estado.habilidade = h.slot; renderizar(); })),
   );
 }
 
 function pintarFiltroLado() {
   const caixa = $("filtroLado");
   caixa.replaceChildren(
-    pilula("Os dois", !estado.lado, () => { estado.lado = null; renderizar(); }),
+    pilula("Os dois", !estado.lado, "lado:todos", () => { estado.lado = null; renderizar(); }),
     ...Object.entries(ROTULO_LADO).map(([valor, rotulo]) =>
-      pilula(rotulo, estado.lado === valor, () => { estado.lado = valor; renderizar(); })),
+      pilula(rotulo, estado.lado === valor, `lado:${valor}`, () => { estado.lado = valor; renderizar(); })),
   );
 }
 
@@ -217,7 +217,27 @@ function pintarSeletorDeAgente() {
   sel.value = estado.agente ?? "";
 }
 
+/**
+ * Redesenha as camadas que dependem dos filtros.
+ *
+ * Marcadores, lista e pílulas são recriados, e recriar um botão joga o foco
+ * para o <body>: quem navega por teclado teria de tabular desde o topo a cada
+ * Enter. Por isso guardamos o data-foco de quem tinha o foco e devolvemos ao
+ * botão equivalente no fim. Mapa trocado reconstrói o minimapa pelo mesmo
+ * caminho (ver escolherMapa).
+ */
+function comFocoPreservado(desenhar) {
+  const chave = document.activeElement?.dataset?.foco;
+  desenhar();
+  if (!chave) return;
+  document.querySelector(`[data-foco="${CSS.escape(chave)}"]`)?.focus();
+}
+
 function renderizar() {
+  comFocoPreservado(desenhar);
+}
+
+function desenhar() {
   const visiveis = pontosVisiveis();
 
   if (estado.selecionado && !visiveis.some((p) => p.id === estado.selecionado)) {
@@ -249,7 +269,7 @@ function pintarBarraDeMapas() {
   const barra = $("barraMapas");
   barra.replaceChildren(...estado.mapas.map((m) =>
     elemento("button", {
-      type: "button", class: "sala__mapa-botao chf",
+      type: "button", class: "sala__mapa-botao chf", "data-foco": `mapa:${m.uuid}`,
       "aria-pressed": String(m.uuid === estado.mapa?.uuid),
       title: m.displayName,
       onclick: () => escolherMapa(m.uuid),
@@ -272,16 +292,18 @@ function escolherMapa(uuid) {
   estado.mapa = mapa;
   gravarMapa(mapa.uuid);
 
-  pintarBarraDeMapas();
-  pintarSeletorDeAgente();
-  minimapa = montarMinimapa($("minimapa"), {
-    mapa,
-    pontos: [],
-    agentes: estado.agentes,
-    aoEscolher: escolherPonto,
-    aoClicarNoMapa: (lugar) => { estado.lugar = lugar; renderizar(); },
+  comFocoPreservado(() => {
+    pintarBarraDeMapas();
+    pintarSeletorDeAgente();
+    minimapa = montarMinimapa($("minimapa"), {
+      mapa,
+      pontos: [],
+      agentes: estado.agentes,
+      aoEscolher: escolherPonto,
+      aoClicarNoMapa: (lugar) => { estado.lugar = lugar; renderizar(); },
+    });
+    desenhar();
   });
-  renderizar();
 }
 
 /* ------------------------------------------------------------------ início -- */
@@ -354,7 +376,12 @@ async function iniciar() {
     estado.habilidade = null;
     renderizar();
   });
-  $("limparLugar").addEventListener("click", () => { estado.lugar = null; renderizar(); });
+  $("limparLugar").addEventListener("click", () => {
+    estado.lugar = null;
+    renderizar();
+    // O botão some junto com o filtro; o foco vai para o seletor em vez de cair no <body>.
+    $("selAgente").focus();
+  });
 
   await carregarDados();
 }

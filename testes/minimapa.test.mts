@@ -97,3 +97,28 @@ test("rotuloDoPonto sobrevive a agente e habilidade desconhecidos", () => {
   assert.equal(rotuloDoPonto(p, agentes), "Cai na A (Sova, Dardo Hacker, ataque, pixel)");
   assert.equal(rotuloDoPonto({ ...p, agente: "sumiu" }, agentes), "Cai na A (ataque, pixel)");
 });
+
+test("com agente escolhido, entram as utils dele e as posições sem agente", () => {
+  const pontos = [
+    { id: "util", tipo: "pixel", agente: "sova", habilidade: "Ability2", lado: "ataque" },
+    { id: "dele", tipo: "posicao", agente: "sova", habilidade: null, lado: "ataque" },
+    { id: "generica", tipo: "posicao", agente: null, habilidade: null, lado: "defesa" },
+    { id: "outro", tipo: "pixel", agente: "viper", habilidade: "Ability2", lado: "ataque" },
+    { id: "posOutro", tipo: "posicao", agente: "viper", habilidade: null, lado: "ataque" },
+  ];
+  assert.deepEqual(filtrarPontos(pontos, { agente: "sova" }).map((p) => p.id), ["util", "dele", "generica"]);
+});
+
+test("a habilidade recorta o agente mas a posição sem agente continua", () => {
+  const pontos = [
+    { id: "a", tipo: "pixel", agente: "sova", habilidade: "Ability2", lado: "ataque" },
+    { id: "b", tipo: "pixel", agente: "sova", habilidade: "Ultimate", lado: "ataque" },
+    { id: "generica", tipo: "posicao", agente: null, habilidade: null, lado: "ataque" },
+  ];
+  assert.deepEqual(filtrarPontos(pontos, { agente: "sova", habilidade: "Ultimate" }).map((p) => p.id), ["b", "generica"]);
+});
+
+test("o lado também recorta as posições sem agente", () => {
+  const pontos = [{ id: "g", tipo: "posicao", agente: null, habilidade: null, lado: "defesa" }];
+  assert.deepEqual(filtrarPontos(pontos, { agente: "sova", lado: "ataque" }), []);
+});

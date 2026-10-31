@@ -216,10 +216,9 @@ export const carregarAgentes = () =>
 
 export const carregarMapas = () => catalogo("/maps?language=pt-BR");
 
-/** Pixels e posições cadastrados pelo painel. Sem argumento, todos os mapas. */
-export async function carregarTatica(mapaUuid) {
-  const consulta = mapaUuid ? `?mapa=${encodeURIComponent(mapaUuid)}` : "";
-  const r = await pegar(`/api/tatica${consulta}`);
+/** Todos os pixels e posições cadastrados pelo painel; a página filtra por mapa no cliente. */
+export async function carregarTatica() {
+  const r = await pegar("/api/tatica");
   return Array.isArray(r?.pontos) ? r.pontos : [];
 }
 
