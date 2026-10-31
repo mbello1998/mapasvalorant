@@ -109,6 +109,17 @@ export async function carregarCatalogo() {
 const LADOS = new Set(["ataque", "defesa"]);
 const MAX_TEXTO = 600; // igual ao servidor (netlify/lib/tatica.mts)
 
+/**
+ * A mesma regra de vídeo do servidor (netlify/lib/tatica.mts): só YouTube, e
+ * ancorada no fim para não deixar lixo passar depois do id.
+ *
+ * Repetida aqui de propósito. O servidor é quem decide de verdade — esta cópia
+ * não afrouxa nada —, mas sem ela o ensaio dizia "pronto" para uma linha que
+ * seria recusada no envio, e o ensaio existe justamente para isso não
+ * acontecer. Se a regra mudar lá, muda aqui.
+ */
+const VIDEO = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{6,}([?&][\w=&.-]*)?$/;
+
 /** Aceita "A Árvore" (callout) ou "0.42, 0.31" (fração crua). */
 export function resolverLugar(valor, mapa) {
   const bruto = String(valor ?? "").trim();
@@ -199,6 +210,15 @@ export function converter(linha, catalogo) {
   const fonte = String(linha.fonte ?? "").trim();
   if (fonte && !fonte.startsWith("https://")) return falha(`fonte tem de ser https, veio "${fonte}"`);
 
+  // Vídeo só entra se for YouTube, porque é o que o servidor grava. Clipe
+  // hospedado no CDN de outro site não cabe aqui nem em `imagens`, que só
+  // aceita arquivo servido por este site (/api/media/): ou se sobe o arquivo
+  // pelo painel, ou o lineup fica só com o link da fonte.
+  const video = String(linha.video ?? "").trim();
+  if (video && !VIDEO.test(video)) {
+    return falha(`vídeo tem de ser link do YouTube, veio "${video.slice(0, 60)}"`);
+  }
+
   const texto = comCredito(linha.texto, linha.credito);
   if (texto.length > MAX_TEXTO) {
     return falha(`texto com ${texto.length} caracteres (o servidor aceita até ${MAX_TEXTO})`);
@@ -210,7 +230,7 @@ export function converter(linha, catalogo) {
       mapa: mapa.uuid, agente, habilidade, lado, tipo,
       de: de.lugar, para, titulo, texto,
       imagens: [], // imagem de terceiro não é re-hospedada; o link da fonte leva ao original
-      video: typeof linha.video === "string" && linha.video ? linha.video : null,
+      video: video || null, // vazio é null, não "": o schema do ponto pede null
       fonte: fonte || null,
       conferido: false, // nada entra conferido: quem importou não testou em jogo
     },

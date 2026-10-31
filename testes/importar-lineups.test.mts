@@ -164,3 +164,40 @@ test("converterTodos importa as boas e lista as ruins, sem parar na primeira", (
   assert.equal(erros[0].linha, 2);
   assert.equal(erros[0].titulo, "ruim");
 });
+
+/* -------------------------------------------------------------------- vídeo -- */
+// O servidor só grava vídeo do YouTube. Sem conferir aqui, o ensaio dizia
+// "pronto" para uma linha que seria recusada no envio — e o ensaio existe
+// justamente para ninguém descobrir isso no meio de um import.
+
+test("vídeo do YouTube passa, nas duas formas", () => {
+  for (const v of ["https://youtu.be/dQw4w9WgXcQ", "https://www.youtube.com/watch?v=dQw4w9WgXcQ"]) {
+    const r = converter({ ...linhaBase, video: v }, CATALOGO);
+    assert.equal(r.ok, true, r.ok ? "" : r.erro);
+    assert.equal(r.ponto.video, v);
+  }
+});
+
+test("vídeo em CDN de outro site é recusado", () => {
+  // Clipe hospedado por terceiro não cabe em `video` (só YouTube) nem em
+  // `imagens` (só arquivo deste site).
+  const r = converter({ ...linhaBase, video: "https://exemplo.b-cdn.net/static/8/3.webp" }, CATALOGO);
+  assert.equal(r.ok, false);
+  assert.match(r.erro, /YouTube/);
+});
+
+test("vídeo com esquema perigoso é recusado", () => {
+  assert.equal(converter({ ...linhaBase, video: "javascript:alert(1)" }, CATALOGO).ok, false);
+  assert.equal(converter({ ...linhaBase, video: "http://youtu.be/dQw4w9WgXcQ" }, CATALOGO).ok, false);
+});
+
+test("vídeo com lixo depois do id é recusado, e com &t=30s é aceito", () => {
+  assert.equal(converter({ ...linhaBase, video: 'https://youtu.be/dQw4w9WgXcQ"><img' }, CATALOGO).ok, false);
+  assert.equal(converter({ ...linhaBase, video: "https://youtu.be/dQw4w9WgXcQ?t=30s" }, CATALOGO).ok, true);
+});
+
+test("sem vídeo o campo fica null, não string vazia", () => {
+  assert.equal(converter({ ...linhaBase }, CATALOGO).ponto.video, null);
+  assert.equal(converter({ ...linhaBase, video: "" }, CATALOGO).ponto.video, null);
+  assert.equal(converter({ ...linhaBase, video: "   " }, CATALOGO).ponto.video, null);
+});
