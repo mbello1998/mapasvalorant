@@ -1715,7 +1715,88 @@ a.feed__item:hover::before { background: var(--sinal); }
 /* white-space: pre-line mantém as quebras de linha que a pessoa escreveu. */
 .ponto__texto { color: var(--tinta-2); line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 .ponto__fotos { display: grid; gap: var(--e-2); }
-.ponto__fotos img { width: 100%; height: auto; border: var(--borda) solid var(--linha-fina); }
+/* A miniatura é um botão, não um link: ela abre o visor na própria página.
+   O reset tira o visual de botão e deixa só a imagem. */
+.ponto__foto {
+  display: block; padding: 0; border: 0; background: none;
+  cursor: zoom-in; width: 100%;
+}
+.ponto__fotos img { width: 100%; height: auto; border: var(--borda) solid var(--linha-fina); display: block; }
+
+/* ------------------------------------------------------------------- visor -- */
+/* Sobreposição das imagens do ponto. Acima do trilho (100) e do link de pulo
+   (200), senão a navegação lateral apareceria por cima da imagem. */
+.visor {
+  position: fixed; inset: 0; z-index: 300;
+  display: grid; place-items: center;
+  padding: var(--e-4);
+  background: rgb(0 0 0 / 0.85);
+}
+.visor[hidden] { display: none; }
+
+/* Trava a rolagem do fundo enquanto o visor está aberto: rolar a página atrás
+   de uma sobreposição desorienta e faz perder o lugar na lista. */
+body.sem-rolagem { overflow: hidden; }
+
+.visor__palco {
+  position: relative;
+  display: grid; justify-items: center; gap: var(--e-2);
+  max-width: min(1100px, 100%);
+}
+.visor__imagem {
+  max-width: 100%; max-height: 78vh;
+  width: auto; height: auto;
+  border: var(--borda) solid var(--linha-fina);
+}
+.visor__contador {
+  font-size: var(--t-s); color: var(--tinta-2);
+  font-variant-numeric: tabular-nums; /* o número não dança ao trocar de passo */
+}
+.visor__legenda {
+  font-size: var(--t-s); color: var(--tinta-3);
+  text-align: center; max-width: 60ch; margin: 0;
+}
+
+.visor__botao {
+  position: absolute; z-index: 1;
+  width: 44px; height: 44px; /* alvo de toque confortável */
+  display: grid; place-items: center;
+  border: var(--borda) solid var(--linha); border-radius: 50%;
+  background: var(--aco-fundo); color: var(--luz);
+  cursor: pointer;
+}
+.visor__botao:hover { border-color: var(--luz); }
+.visor__botao[hidden] { display: none; }
+
+/* As setas desenhadas em CSS: sem dependência de fonte de ícone nem de SVG
+   externo, que atrasaria a primeira abertura. */
+.visor__botao--anterior, .visor__botao--proxima { top: calc(39vh - 22px); }
+.visor__botao--anterior { left: calc(-1 * var(--e-5)); }
+.visor__botao--proxima { right: calc(-1 * var(--e-5)); }
+.visor__botao--fechar { top: calc(-1 * var(--e-5)); right: 0; }
+
+.visor__botao::before {
+  content: ""; width: 10px; height: 10px;
+  border-top: 2px solid currentColor; border-right: 2px solid currentColor;
+}
+.visor__botao--anterior::before { transform: translateX(2px) rotate(-135deg); }
+.visor__botao--proxima::before { transform: translateX(-2px) rotate(45deg); }
+/* O X é a mesma forma girada, com a segunda haste num ::after. */
+.visor__botao--fechar::before,
+.visor__botao--fechar::after {
+  content: ""; position: absolute;
+  width: 16px; height: 0; border-top: 2px solid currentColor; border-right: 0;
+}
+.visor__botao--fechar::before { transform: rotate(45deg); }
+.visor__botao--fechar::after { transform: rotate(-45deg); }
+
+/* Em tela estreita não há margem para as setas ao lado da imagem: elas descem
+   para dentro do quadro, nas bordas. */
+@media (max-width: 720px) {
+  .visor__botao--anterior { left: var(--e-2); }
+  .visor__botao--proxima { right: var(--e-2); }
+  .visor__botao--fechar { top: var(--e-2); right: var(--e-2); }
+}
 .ponto__video { color: var(--sinal-tinta); font-weight: 600; font-size: var(--t-s); }
 .ponto__fonte { font-size: var(--t-s); color: var(--tinta-3); overflow-wrap: anywhere; }
 .ponto__fonte a { color: var(--sinal-tinta); font-weight: 600; }

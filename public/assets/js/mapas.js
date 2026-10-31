@@ -1,6 +1,7 @@
 import { carregarConteudo, carregarMapas, carregarAgentes, carregarTatica } from "./api.js";
 import { $, elemento, vestirPagina } from "./chrome.js";
 import { carregarConta, montarBotaoDeConta } from "./conta.js";
+import { montarVisor } from "./visor.js";
 import {
   montarMinimapa, pontosDoMapa, filtrarPontos, filtrarPorLugar, filtrarPorTrajeto,
   agenteDoPonto, habilidadeDoPonto,
@@ -38,6 +39,9 @@ const estado = {
 };
 
 let minimapa = null;
+// Um visor para a página inteira, montado no início. Recriá-lo a cada clique
+// perderia o foco e piscaria a sobreposição.
+let visor = null;
 
 /* ---------------------------------------------------------- persistência -- */
 
@@ -147,17 +151,19 @@ function pintarPainel(ponto) {
 
   const fotos = (ponto.imagens ?? []).filter(imagemSegura);
   if (fotos.length) {
-    // Um .svg aberto como documento próprio roda script na origem do site, e o
-    // servidor de mídia aceita image/svg+xml. Dentro de <img> o script não roda,
-    // então SVG aparece sem o link para a imagem em nova aba; os demais formatos
-    // continuam ampliáveis.
-    const ehSvg = (src) => /\.svg$/i.test(src);
-    caixa.append(elemento("div", { class: "ponto__fotos" }, fotos.map((src, i) => {
-      const img = elemento("img", { src, alt: `Imagem ${i + 1} de ${ponto.titulo}`, loading: "lazy" });
-      return ehSvg(src)
-        ? img
-        : elemento("a", { href: src, target: "_blank", rel: "noopener" }, [img]);
-    })));
+    // Todas abrem no visor, inclusive .svg. Antes o SVG era o caso especial:
+    // o servidor de mídia aceita image/svg+xml, e um .svg aberto como
+    // documento próprio roda script na origem do site, então ele ficava sem o
+    // link que as outras tinham. O visor acaba com a exceção, porque a imagem
+    // nunca deixa de estar dentro de um <img>, onde script não roda.
+    caixa.append(elemento("div", { class: "ponto__fotos" }, fotos.map((src, i) =>
+      elemento("button", {
+        type: "button", class: "ponto__foto chf",
+        "aria-label": `Ampliar imagem ${i + 1} de ${fotos.length}`,
+        onclick: () => visor.abrir(fotos, i, ponto.titulo),
+      }, [
+        elemento("img", { src, alt: `Imagem ${i + 1} de ${ponto.titulo}`, loading: "lazy" }),
+      ]))));
   }
 
   const video = ponto.video ? linkDeVideo(ponto.video) : null;
@@ -510,6 +516,7 @@ async function iniciar() {
   estado.conteudo = conteudo;
   vestirPagina(conteudo, { aqui: "mapas.html", titulo: "Sala de Mapas" });
   carregarConta().then(montarBotaoDeConta);
+  visor = montarVisor();
 
   $("limparLugar").addEventListener("click", () => {
     limparLugares();
