@@ -1311,6 +1311,13 @@ function pintarMarcacao() {
     botao.setAttribute("aria-pressed", String(tipo === tat.tipo));
   }
   dica.textContent = dicaDeMarcacao();
+  // Pixel com a origem marcada e o destino pendente: o próximo clique tem de
+  // virar `para`, mesmo que caia em cima de outro marcador. O CSS desliga o
+  // clique dos marcadores enquanto este atributo estiver no minimapa. Calculado
+  // aqui, que roda em toda mudança do rascunho (marcar, trocar tipo, refazer,
+  // salvar, limpar, abrir outro ponto), para nunca ficar preso ligado.
+  const aguardandoDestino = tat.tipo === "pixel" && Boolean(tat.de) && !tat.para;
+  tat.refs.minimapa.dataset.marcando = aguardandoDestino ? "destino" : "";
   atualizarMapaDeTatica();
 }
 

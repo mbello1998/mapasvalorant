@@ -274,6 +274,10 @@ textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; font-size: 0.
 .minimapa__ponto--posicao.minimapa__ponto--defesa { --chf-fundo: var(--verde); }
 .minimapa__ponto:hover { --chf-borda: var(--luz); z-index: 2; }
 .minimapa__ponto[aria-pressed="true"] { --chf-borda: var(--luz); --chf-anel: 3px; z-index: 3; }
+/* Esperando o destino de um pixel: o clique atravessa os marcadores e chega ao
+   mapa, que o recebe como `para`. Sem isto, mirar perto de outro ponto abria
+   esse ponto para edição em vez de marcar onde a util cai. */
+.tat-minimapa[data-marcando="destino"] .minimapa__ponto { pointer-events: none; }
 .minimapa__icone { width: 18px; height: 18px; object-fit: contain; }
 
 .minimapa__barra { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.875rem; }
