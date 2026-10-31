@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizarPonto, lerPontos, LIMITE_PONTOS, novoId } from "../netlify/lib/tatica.mts";
+import { normalizarPonto, lerPontos, LIMITE_PONTOS, novoId, faltamDoAcervo } from "../netlify/lib/tatica.mts";
 import { ACERVO } from "../netlify/lib/acervo-tatica.mts";
 
 const MAPAS = new Set(["uuid-ascent"]);
@@ -243,9 +243,42 @@ test("lerPontos exige `para` numérico só quando o tipo é pixel", () => {
 // apareceria. O conjunto de mapas aqui é o dos mapas que o acervo cita.
 const MAPAS_DO_ACERVO = new Set(ACERVO.map((p) => p.mapa));
 
-test("o acervo não está vazio e cobre 6 mapas", () => {
+test("o acervo não está vazio e cobre os 13 mapas jogáveis", () => {
   assert.ok(ACERVO.length > 0);
-  assert.equal(MAPAS_DO_ACERVO.size, 6);
+  assert.equal(MAPAS_DO_ACERVO.size, 13);
+});
+
+/**
+ * O que a página precisa é que nenhum mapa do seletor abra vazio. Contar
+ * posições, e não pontos, é de propósito: sem agente escolhido a página só
+ * mostra posições, então um mapa que só tivesse pixels abriria em branco.
+ */
+test("todo mapa do acervo tem ao menos uma posição, para não abrir vazio", () => {
+  for (const mapa of MAPAS_DO_ACERVO) {
+    const posicoes = ACERVO.filter((p) => p.mapa === mapa && p.tipo === "posicao");
+    assert.ok(posicoes.length > 0, `mapa ${mapa} não tem posição`);
+  }
+});
+
+/**
+ * O slot é o que casa o ponto com a habilidade na API; um slot inventado
+ * ("Smoke", "Q") não casaria com nada e o ponto apareceria sem ícone e fora
+ * do filtro, sem erro nenhum para avisar. Esta lista é a de /v1/agents.
+ */
+test("todo pixel do acervo usa um slot de habilidade que existe na API", () => {
+  const SLOTS = new Set(["Ability1", "Ability2", "Grenade", "Ultimate", "Passive"]);
+  for (const p of ACERVO) {
+    if (p.tipo !== "pixel") continue;
+    assert.ok(SLOTS.has(p.habilidade!), `${p.titulo}: slot "${p.habilidade}" não existe`);
+  }
+});
+
+/** Linha de comprimento zero não se vê no mapa e não ensina de onde jogar. */
+test("no acervo, pixel sai de um lugar diferente de onde cai", () => {
+  for (const p of ACERVO) {
+    if (p.tipo !== "pixel") continue;
+    assert.ok(p.de.x !== p.para!.x || p.de.y !== p.para!.y, `${p.titulo}: de e para iguais`);
+  }
 });
 
 test("todo ponto do acervo passa por normalizarPonto sem erro", () => {
@@ -271,4 +304,56 @@ test("no acervo, pixel tem destino e posição não tem", () => {
     if (p.tipo === "pixel") assert.ok(p.para && p.agente && p.habilidade, p.titulo);
     else assert.equal(p.para, null, p.titulo);
   }
+});
+
+/* ------------------------------------------- completar o acervo depois de semeado -- */
+// O caminho que acrescenta mapas novos a um depósito que já tem pontos. Errado,
+// ele duplica o acervo inteiro ou deixa de trazer o que falta, e isso só
+// apareceria em produção: a semeadura comum nunca passa por aqui.
+
+const pt = (mapa: string, titulo: string) => ({ mapa, titulo });
+
+test("faltamDoAcervo: depósito vazio pede o acervo inteiro", () => {
+  const acervo = [pt("a", "um"), pt("a", "dois")];
+  assert.deepEqual(faltamDoAcervo([], acervo), acervo);
+});
+
+test("faltamDoAcervo: depósito que já tem tudo não pede nada", () => {
+  const acervo = [pt("a", "um"), pt("b", "dois")];
+  assert.deepEqual(faltamDoAcervo([...acervo], acervo), []);
+});
+
+test("faltamDoAcervo: pede só o que falta", () => {
+  const acervo = [pt("a", "um"), pt("a", "dois"), pt("b", "tres")];
+  const guardados = [pt("a", "um")];
+  assert.deepEqual(faltamDoAcervo(guardados, acervo).map((p) => p.titulo), ["dois", "tres"]);
+});
+
+test("faltamDoAcervo é idempotente: aplicar e repetir não duplica", () => {
+  const acervo = [pt("a", "um"), pt("b", "dois")];
+  const depois = [...[], ...faltamDoAcervo([], acervo)];
+  assert.deepEqual(faltamDoAcervo(depois, acervo), []);
+});
+
+test("faltamDoAcervo não se confunde com o que o dono cadastrou", () => {
+  // Ponto do dono, que não está no acervo, não impede nem casa com nada.
+  const acervo = [pt("a", "um")];
+  const doDono = [pt("a", "meu ponto")];
+  assert.deepEqual(faltamDoAcervo(doDono, acervo).map((p) => p.titulo), ["um"]);
+});
+
+test("faltamDoAcervo trata o mesmo título em mapas diferentes como pontos distintos", () => {
+  const acervo = [pt("a", "Entrada do A"), pt("b", "Entrada do A")];
+  assert.deepEqual(faltamDoAcervo([pt("a", "Entrada do A")], acervo).map((p) => p.mapa), ["b"]);
+});
+
+test("faltamDoAcervo não junta mapa e título ao comparar", () => {
+  // Sem separador, "ab" + "c" e "a" + "bc" dariam a mesma chave e um dos dois
+  // pontos sumiria sem erro nenhum.
+  const acervo = [pt("a", "bc")];
+  assert.deepEqual(faltamDoAcervo([pt("ab", "c")], acervo), acervo);
+});
+
+test("faltamDoAcervo: o acervo de verdade é idempotente contra ele mesmo", () => {
+  assert.deepEqual(faltamDoAcervo(ACERVO, ACERVO), []);
 });

@@ -60,6 +60,36 @@ const IMAGEM = /^\/api\/media\/(?!.*\.\.)[\w.-]+$/;
 
 export const novoId = () => `p_${crypto.randomUUID().slice(0, 8)}`;
 
+/**
+ * A identidade de um ponto do acervo dentro do depósito: mapa mais título.
+ *
+ * O id não serve, porque é sorteado na hora de semear e muda a cada gravação.
+ * Mapa mais título é estável enquanto o texto do acervo não for reescrito, e
+ * dois pontos do mesmo mapa com o mesmo título seriam a mesma coisa de
+ * qualquer forma. O \0 separa os dois campos para que um título que contenha
+ * o texto de outro não produza a mesma chave.
+ */
+export const assinaturaDoPonto = (p: { mapa: string; titulo: string }) => `${p.mapa}\u0000${p.titulo}`;
+
+/**
+ * Os pontos do acervo que ainda não estão no depósito.
+ *
+ * Existe para o acervo poder crescer depois de o site já ter sido semeado:
+ * a semeadura original só roda com o depósito vazio, então sem isto um mapa
+ * acrescentado ao acervo nunca chegaria a quem já tem pontos gravados.
+ *
+ * Nunca remove nem reescreve: devolve só o que falta, e quem chama acrescenta.
+ * Assim o que o dono cadastrou ou editou pelo painel fica intacto, e rodar
+ * duas vezes não duplica nada.
+ */
+export function faltamDoAcervo<T extends { mapa: string; titulo: string }>(
+  pontos: readonly { mapa: string; titulo: string }[],
+  acervo: readonly T[],
+): T[] {
+  const jaTem = new Set((pontos ?? []).map(assinaturaDoPonto));
+  return (acervo ?? []).filter((p) => !jaTem.has(assinaturaDoPonto(p)));
+}
+
 const falha = (erro: string): ResultadoPonto => ({ ok: false, erro });
 
 const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");

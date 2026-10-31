@@ -1,7 +1,7 @@
 import type { Config, Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 import { autorizar } from "../lib/auth.mts";
-import { normalizarPonto, lerPontos, novoId, LIMITE_PONTOS } from "../lib/tatica.mts";
+import { normalizarPonto, lerPontos, novoId, faltamDoAcervo, LIMITE_PONTOS } from "../lib/tatica.mts";
 import type { Ponto } from "../lib/tatica.mts";
 import { ACERVO } from "../lib/acervo-tatica.mts";
 
@@ -9,6 +9,25 @@ const CHAVE = "pontos";
 // Marca que o acervo inicial já foi gravado. Sem ela, apagar tudo pelo painel
 // faria o acervo voltar na visita seguinte.
 const SEMEADO = "semeado";
+
+/**
+ * Versão do acervo, e a marca da última versão completada no depósito.
+ *
+ * A semeadura original só roda com o depósito vazio, o que é certo: ela não
+ * pode passar por cima do que o dono cadastrou. Só que isso também trancava
+ * o acervo na versão do dia em que o site foi semeado — acrescentar mapas ao
+ * `ACERVO` não chegava a quem já tinha o depósito cheio.
+ *
+ * O complemento resolve sem apagar nada: acrescenta só os pontos do acervo
+ * que ainda não estão lá, reconhecidos por mapa + título, e nunca remove nem
+ * reescreve o que já existe. Ponto que o dono apagou de propósito volta uma
+ * vez quando a versão sobe; é o preço de poder crescer o acervo, e é menos
+ * ruim do que mapa novo nunca aparecer.
+ *
+ * Suba este número ao acrescentar pontos ao `ACERVO`.
+ */
+const VERSAO_ACERVO = 2;
+const VERSAO = "acervo-versao";
 
 // Consistência forte: o painel grava e recarrega a lista em seguida, e precisa
 // ver o que acabou de salvar.
@@ -107,9 +126,32 @@ export default async (req: Request, _context: Context) => {
           await l.setJSON(CHAVE, semeados);
           pontos = semeados;
           await l.set(SEMEADO, agora);
+          // Já nasce na versão de agora: semear tudo e completar em seguida
+          // gravaria o acervo duas vezes.
+          await l.set(VERSAO, String(VERSAO_ACERVO));
         }
       } catch (e) {
         console.error("Falha ao semear o acervo:", e);
+      }
+    } else if (leu) {
+      // Depósito com pontos e acervo que cresceu desde a última vez: acrescenta
+      // o que falta, sem tocar no que está lá. Gravar só quando há o que
+      // acrescentar evita uma escrita a cada leitura.
+      try {
+        const versao = Number(await l.get(VERSAO)) || 0;
+        if (versao < VERSAO_ACERVO) {
+          const faltam = faltamDoAcervo(pontos, ACERVO);
+          if (faltam.length) {
+            const agora = new Date().toISOString();
+            const lista = [...pontos, ...faltam.map((p) => ({ ...p, id: novoId(), criadoEm: agora }))]
+              .slice(0, LIMITE_PONTOS);
+            await l.setJSON(CHAVE, lista);
+            pontos = lista;
+          }
+          await l.set(VERSAO, String(VERSAO_ACERVO));
+        }
+      } catch (e) {
+        console.error("Falha ao completar o acervo:", e);
       }
     }
     const mapa = url.searchParams.get("mapa");
