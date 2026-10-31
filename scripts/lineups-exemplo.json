@@ -1,0 +1,38 @@
+[
+  {
+    "_comentario": "Modelo de entrada do importador. Copie, troque os valores e rode: node scripts/importar-lineups.mjs scripts/lineups-exemplo.json",
+
+    "mapa": "Ascent",
+    "agente": "Brimstone",
+    "habilidade": "Fumaça Celeste",
+    "lado": "ataque",
+    "tipo": "pixel",
+    "de": "A Acesso",
+    "para": "A Árvore",
+    "titulo": "Fumaça na Árvore para entrar no A",
+    "texto": "Fecha a Árvore e tira a linha de quem segura o A pelo lado do meio.",
+    "fonte": "https://exemplo.com/lineup/123",
+    "credito": "nome de quem publicou"
+  },
+  {
+    "mapa": "Ascent",
+    "lado": "defesa",
+    "tipo": "posicao",
+    "de": "B Casa de Barcos",
+    "titulo": "Defender o B pela Casa de Barcos",
+    "texto": "Posição no fundo do ponto, com o time à frente. Troque de lugar depois do primeiro tiro."
+  },
+  {
+    "mapa": "Haven",
+    "agente": "Sova",
+    "habilidade": "Flecha Rastreadora",
+    "lado": "ataque",
+    "tipo": "pixel",
+    "de": "C Acesso",
+    "para": "C Ponto",
+    "titulo": "Rastreadora no C antes de entrar",
+    "texto": "Saber quantos estão no C decide se vale entrar ou trocar de ponto.",
+    "fonte": "https://exemplo.com/lineup/456",
+    "credito": "outra pessoa"
+  }
+]
