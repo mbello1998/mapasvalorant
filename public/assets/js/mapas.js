@@ -115,10 +115,17 @@ function pintarPainel(ponto) {
 
   const fotos = (ponto.imagens ?? []).filter(imagemSegura);
   if (fotos.length) {
-    caixa.append(elemento("div", { class: "ponto__fotos" }, fotos.map((src, i) =>
-      elemento("a", { href: src, target: "_blank", rel: "noopener" }, [
-        elemento("img", { src, alt: `Imagem ${i + 1} de ${ponto.titulo}`, loading: "lazy" }),
-      ]))));
+    // Um .svg aberto como documento próprio roda script na origem do site, e o
+    // servidor de mídia aceita image/svg+xml. Dentro de <img> o script não roda,
+    // então SVG aparece sem o link para a imagem em nova aba; os demais formatos
+    // continuam ampliáveis.
+    const ehSvg = (src) => /\.svg$/i.test(src);
+    caixa.append(elemento("div", { class: "ponto__fotos" }, fotos.map((src, i) => {
+      const img = elemento("img", { src, alt: `Imagem ${i + 1} de ${ponto.titulo}`, loading: "lazy" });
+      return ehSvg(src)
+        ? img
+        : elemento("a", { href: src, target: "_blank", rel: "noopener" }, [img]);
+    })));
   }
 
   const video = ponto.video ? linkDeVideo(ponto.video) : null;
