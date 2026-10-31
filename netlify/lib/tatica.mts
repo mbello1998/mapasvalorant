@@ -144,16 +144,31 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
   };
 }
 
+/** Coordenada com x e y numéricos; a faixa 0–1 é problema da entrada, não da leitura. */
+function coordLegivel(v: unknown): boolean {
+  if (v === null || typeof v !== "object") return false;
+  const c = v as Record<string, unknown>;
+  return Number.isFinite(c.x) && Number.isFinite(c.y);
+}
+
 /**
  * Lê o que veio do depósito sem confiar nele. Depósito vazio, corrompido ou
  * gravado num formato antigo vira lista vazia (ou só os itens aproveitáveis),
  * porque a página pública não pode cair em 500 por causa de um dado ruim.
  * Sem `id` o ponto não serve: não dá para editar nem apagar, então sai.
+ *
+ * Um registro com `id` mas sem `de` (ou, num pixel, sem `para`) numéricos também
+ * sai: a página lê `de.x` dentro do laço dos marcadores, e um único registro
+ * quebrado derrubaria o mapa inteiro em vez de só um marcador. Nada grava isso
+ * hoje; é defesa para o dia em que o depósito for mexido por fora.
  */
 export function lerPontos(bruto: unknown): Ponto[] {
   if (!Array.isArray(bruto)) return [];
-  return bruto.filter(
-    (p): p is Ponto =>
-      p !== null && typeof p === "object" && !Array.isArray(p) && typeof (p as Ponto).id === "string",
-  );
+  return bruto.filter((p): p is Ponto => {
+    if (p === null || typeof p !== "object" || Array.isArray(p)) return false;
+    const r = p as Record<string, unknown>;
+    if (typeof r.id !== "string") return false;
+    if (!coordLegivel(r.de)) return false;
+    return r.tipo !== "pixel" || coordLegivel(r.para);
+  });
 }

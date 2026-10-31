@@ -189,6 +189,22 @@ test("lerPontos descarta só os itens quebrados e sem id", () => {
   assert.deepEqual(lerPontos([null, gravado, { titulo: "sem id" }, 7]), [gravado]);
 });
 
+test("lerPontos descarta registro com id mas com `de` quebrado", () => {
+  const semDe = { ...gravado, id: "p_semde001", de: undefined };
+  const deTexto = { ...gravado, id: "p_detexto1", de: { x: "0.5", y: 0.5 } };
+  const deNulo = { ...gravado, id: "p_denulo01", de: null };
+  assert.deepEqual(lerPontos([semDe, deTexto, deNulo, gravado]), [gravado]);
+});
+
+test("lerPontos exige `para` numérico só quando o tipo é pixel", () => {
+  const pixel = { ...gravado, id: "p_pixel001", tipo: "pixel", para: { x: 0.2, y: 0.3 } };
+  const pixelSemPara = { ...pixel, id: "p_pixel002", para: null };
+  const pixelParaRuim = { ...pixel, id: "p_pixel003", para: { x: 0.2 } };
+  assert.deepEqual(lerPontos([pixel, pixelSemPara, pixelParaRuim]), [pixel]);
+  // Posição não usa `para`, então um `para` qualquer não a derruba.
+  assert.deepEqual(lerPontos([{ ...gravado, para: undefined }]), [{ ...gravado, para: undefined }]);
+});
+
 // O acervo é semeado pela rota; um ponto que a própria validação recusa nunca
 // apareceria. O conjunto de mapas aqui é o dos mapas que o acervo cita.
 const MAPAS_DO_ACERVO = new Set(ACERVO.map((p) => p.mapa));
