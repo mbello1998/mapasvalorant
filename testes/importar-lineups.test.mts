@@ -201,3 +201,51 @@ test("sem vídeo o campo fica null, não string vazia", () => {
   assert.equal(converter({ ...linhaBase, video: "" }, CATALOGO).ponto.video, null);
   assert.equal(converter({ ...linhaBase, video: "   " }, CATALOGO).ponto.video, null);
 });
+
+/* ------------------------------------------------------------ imagem de fora -- */
+// URL de fora nunca entra no ponto direto: `imagens` só aceita caminho
+// /api/media/ deste site. Ela fica ao lado, e só vira caminho local se o
+// import rodar com --midia, que baixa e re-hospeda.
+
+test("imagem de fora fica em midia, e o ponto sai sem imagem", () => {
+  const r = converter({ ...linhaBase, imagens: ["https://cdn.exemplo.com/a.webp"] }, CATALOGO);
+  assert.equal(r.ok, true, r.ok ? "" : r.erro);
+  assert.deepEqual(r.ponto.imagens, []);
+  assert.deepEqual(r.midia, ["https://cdn.exemplo.com/a.webp"]);
+});
+
+test("sem imagens, midia vem vazia", () => {
+  assert.deepEqual(converter(linhaBase, CATALOGO).midia, []);
+});
+
+test("imagem que não é https é recusada", () => {
+  const r = converter({ ...linhaBase, imagens: ["http://cdn.exemplo.com/a.webp"] }, CATALOGO);
+  assert.equal(r.ok, false);
+  assert.match(r.erro, /https/);
+});
+
+test("mais de três imagens é recusado, porque o servidor recusaria", () => {
+  const quatro = ["a", "b", "c", "d"].map((n) => `https://cdn.exemplo.com/${n}.webp`);
+  const r = converter({ ...linhaBase, imagens: quatro }, CATALOGO);
+  assert.equal(r.ok, false);
+  assert.match(r.erro, /até 3/);
+});
+
+test("imagem de fora sem fonte é recusada", () => {
+  // Re-hospedar arquivo de outra pessoa sem dizer de onde veio apaga o
+  // crédito justamente no caso em que ele mais importa.
+  const { fonte, ...semFonte } = linhaBase;
+  const r = converter({ ...semFonte, imagens: ["https://cdn.exemplo.com/a.webp"] }, CATALOGO);
+  assert.equal(r.ok, false);
+  assert.match(r.erro, /fonte/);
+});
+
+test("converterTodos devolve a mídia ao lado de cada ponto", () => {
+  const { itens } = converterTodos(
+    [linhaBase, { ...linhaBase, titulo: "com foto", imagens: ["https://cdn.exemplo.com/a.webp"] }],
+    CATALOGO,
+  );
+  assert.equal(itens.length, 2);
+  assert.deepEqual(itens[0].midia, []);
+  assert.deepEqual(itens[1].midia, ["https://cdn.exemplo.com/a.webp"]);
+});

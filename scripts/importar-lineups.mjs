@@ -22,10 +22,20 @@
 // schema do ponto não tem campo de autor. Os dois são opcionais para o script
 // rodar, mas se o lineup veio de outro lugar, preencha os dois.
 //
+// Imagem: a linha pode trazer `imagens` com endereços de fora. Eles não entram
+// no ponto direto — `imagens` só aceita caminho /api/media/ deste site. Com
+// --midia o script baixa cada arquivo, confere tipo e tamanho, re-hospeda pela
+// rota de mídia e grava o caminho local. Sem a flag, o ponto entra sem imagem e
+// o link da fonte leva ao original, que é o padrão e o mais barato. Linha com
+// imagem de fora exige `fonte`, senão o crédito se perde justamente onde mais
+// importa. Vídeo não: a rota de mídia só guarda imagem, e o campo `video` do
+// ponto só aceita link do YouTube.
+//
 // Uso:
 //   node scripts/importar-lineups.mjs entrada.json                 (ensaio)
 //   node scripts/importar-lineups.mjs entrada.json --saida out.json
 //   node scripts/importar-lineups.mjs entrada.json --enviar --url https://estandebr.netlify.app
+//   node scripts/importar-lineups.mjs entrada.json --enviar --midia --url https://...
 //
 // Com --enviar, a chave vem de ADMIN_KEY no ambiente; ela nunca é impressa.
 
@@ -119,6 +129,15 @@ const MAX_TEXTO = 600; // igual ao servidor (netlify/lib/tatica.mts)
  * acontecer. Se a regra mudar lá, muda aqui.
  */
 const VIDEO = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{6,}([?&][\w=&.-]*)?$/;
+
+// Espelha a rota /api/media: ela só guarda imagem, e recusa o resto. Vídeo de
+// verdade (mp4, webm) não entra no site por lugar nenhum — é por isso que o
+// campo `video` do ponto só aceita link do YouTube.
+const TIPOS_IMAGEM = new Set([
+  "image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/svg+xml", "image/x-icon",
+]);
+const LIMITE_MIDIA = 4 * 1024 * 1024;
+const MAX_IMAGENS = 3;
 
 /** Aceita "A Árvore" (callout) ou "0.42, 0.31" (fração crua). */
 export function resolverLugar(valor, mapa) {
@@ -224,8 +243,32 @@ export function converter(linha, catalogo) {
     return falha(`texto com ${texto.length} caracteres (o servidor aceita até ${MAX_TEXTO})`);
   }
 
+  // Imagem de fora não entra no ponto aqui: `imagens` só aceita caminho
+  // /api/media/ deste site. A URL fica guardada à parte e só vira caminho se
+  // o import rodar com --midia, que baixa e re-hospeda. Sem a flag, o ponto
+  // entra sem imagem e o link da fonte leva ao original.
+  const midia = [];
+  const brutas = Array.isArray(linha.imagens) ? linha.imagens : [];
+  for (const u of brutas) {
+    const url = String(u ?? "").trim();
+    if (!url) continue;
+    if (!url.startsWith("https://")) return falha(`imagem tem de ser https, veio "${url.slice(0, 60)}"`);
+    midia.push(url);
+  }
+  if (midia.length > MAX_IMAGENS) {
+    return falha(`${midia.length} imagens (o servidor aceita até ${MAX_IMAGENS} por ponto)`);
+  }
+  // Re-hospedar arquivo de outra pessoa sem dizer de onde veio apaga o crédito
+  // justamente no caso em que ele mais importa.
+  if (midia.length && !fonte) {
+    return falha("linha com imagem de fora precisa de `fonte`, senão o crédito se perde");
+  }
+
   return {
     ok: true,
+    // As URLs de fora andam ao lado do ponto, não dentro dele: o ponto já sai
+    // daqui válido para o servidor, e a mídia é uma etapa opcional depois.
+    midia,
     ponto: {
       mapa: mapa.uuid, agente, habilidade, lado, tipo,
       de: de.lugar, para, titulo, texto,
@@ -238,17 +281,105 @@ export function converter(linha, catalogo) {
 }
 
 export function converterTodos(linhas, catalogo) {
-  const pontos = [];
+  const itens = [];
   const erros = [];
   linhas.forEach((linha, i) => {
     const r = converter(linha, catalogo);
-    if (r.ok) pontos.push(r.ponto);
+    if (r.ok) itens.push({ ponto: r.ponto, midia: r.midia });
     else erros.push({ linha: i + 1, titulo: linha?.titulo ?? "(sem título)", erro: r.erro });
   });
-  return { pontos, erros };
+  // `pontos` é a lista pronta para enviar; `itens` guarda a mídia de fora ao
+  // lado de cada um, para a etapa de --midia.
+  return { pontos: itens.map((i) => i.ponto), itens, erros };
 }
 
 /* ----------------------------------------------------------------------- CLI -- */
+
+/**
+ * Baixa uma imagem de fora, conferindo antes o que a rota de mídia confere.
+ *
+ * Checar aqui e não só lá evita subir 4 MB para receber 413 de volta, e evita
+ * mandar para o site um arquivo que não é imagem. O tipo vem do cabeçalho da
+ * resposta, não da extensão da URL: extensão é palpite, Content-Type é o que
+ * o servidor de origem afirma — e é o que a rota vai olhar.
+ */
+async function baixarImagem(url) {
+  let r;
+  try {
+    r = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    return { ok: false, erro: `não baixou (${e.name === "TimeoutError" ? "tempo esgotado" : e.message})` };
+  }
+  if (!r.ok) return { ok: false, erro: `origem respondeu ${r.status}` };
+
+  const tipo = (r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  if (!TIPOS_IMAGEM.has(tipo)) {
+    return { ok: false, erro: `não é imagem aceita (${tipo || "sem content-type"})` };
+  }
+
+  const dados = new Uint8Array(await r.arrayBuffer());
+  if (dados.byteLength > LIMITE_MIDIA) {
+    return { ok: false, erro: `${(dados.byteLength / 1024 / 1024).toFixed(1)} MB (o limite é 4 MB)` };
+  }
+
+  // O nome só serve para o arquivo ficar reconhecível no painel; a rota gera a
+  // chave real. Sem nome na URL, um genérico resolve.
+  const nome = decodeURIComponent(new URL(url).pathname.split("/").filter(Boolean).pop() ?? "imagem");
+  return { ok: true, dados, tipo, nome };
+}
+
+async function subirImagem({ dados, tipo, nome }, base, chave) {
+  const form = new FormData();
+  form.set("file", new File([dados], nome, { type: tipo }));
+  const r = await fetch(new URL("/api/media", base), {
+    method: "POST",
+    headers: { "x-admin-key": chave },
+    body: form,
+  });
+  if (!r.ok) {
+    const corpo = await r.text().catch(() => "");
+    return { ok: false, erro: `${r.status} ${corpo.slice(0, 160)}` };
+  }
+  const { url } = await r.json();
+  return { ok: true, url };
+}
+
+/**
+ * Re-hospeda a mídia de fora e grava o caminho local em cada ponto.
+ *
+ * Uma imagem que falha não derruba o ponto: ele entra sem ela, e o link da
+ * fonte continua levando ao original. Perder um lineup inteiro porque uma
+ * das três imagens deu 404 seria pior do que mostrá-lo com duas.
+ */
+async function resolverMidia(itens, base, chave) {
+  let subidas = 0;
+  let falhas = 0;
+  for (const { ponto, midia } of itens) {
+    if (!midia?.length) continue;
+    const caminhos = [];
+    for (const url of midia) {
+      const baixada = await baixarImagem(url);
+      if (!baixada.ok) {
+        console.error(`  imagem de "${ponto.titulo}": ${baixada.erro} — ${url.slice(0, 70)}`);
+        falhas++;
+        continue;
+      }
+      const subida = await subirImagem(baixada, base, chave);
+      if (!subida.ok) {
+        console.error(`  imagem de "${ponto.titulo}": upload falhou ${subida.erro}`);
+        falhas++;
+        continue;
+      }
+      caminhos.push(subida.url);
+      subidas++;
+      // Pausa entre arquivos: o import puxa de um servidor que não é nosso, e
+      // a rota de mídia também tem limite por minuto.
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    ponto.imagens = caminhos.slice(0, MAX_IMAGENS);
+  }
+  return { subidas, falhas };
+}
 
 async function enviar(pontos, base, chave) {
   let feitos = 0;
@@ -312,7 +443,7 @@ async function principal() {
   }
 
   const catalogo = await carregarCatalogo();
-  const { pontos, erros } = converterTodos(linhas, catalogo);
+  const { pontos, itens, erros } = converterTodos(linhas, catalogo);
 
   console.log(`${pontos.length} de ${linhas.length} prontos.`);
   if (erros.length) {
@@ -321,6 +452,15 @@ async function principal() {
   }
   const semFonte = pontos.filter((p) => !p.fonte).length;
   if (semFonte) console.log(`\naviso: ${semFonte} sem fonte. Se vieram de outro site, preencha para dar o crédito.`);
+
+  const comMidia = itens.filter((i) => i.midia.length);
+  const arquivos = comMidia.reduce((n, i) => n + i.midia.length, 0);
+  if (arquivos) {
+    console.log(`\n${arquivos} imagens de fora em ${comMidia.length} pontos.`);
+    if (!args.includes("--midia")) {
+      console.log("Sem --midia elas são ignoradas e o ponto entra sem imagem; o link da fonte leva ao original.");
+    }
+  }
 
   const saida = opcao("--saida", null);
   if (saida) {
@@ -337,6 +477,16 @@ async function principal() {
   const chave = process.env.ADMIN_KEY;
   if (!base) { console.error("--enviar precisa de --url"); process.exit(2); }
   if (!chave) { console.error("--enviar precisa de ADMIN_KEY no ambiente"); process.exit(2); }
+
+  // A mídia sobe antes dos pontos: ponto gravado sem a imagem teria de ser
+  // editado depois, e arquivo subido sem ponto vira lixo no depósito. Nesta
+  // ordem, uma falha no meio deixa no pior caso arquivo órfão, que o painel
+  // de mídia mostra e dá para apagar.
+  if (arquivos && args.includes("--midia")) {
+    console.log(`\nre-hospedando ${arquivos} imagens em ${base}…`);
+    const { subidas, falhas } = await resolverMidia(itens, base, chave);
+    console.log(`${subidas} imagens gravadas${falhas ? `, ${falhas} falharam` : ""}.`);
+  }
 
   console.log(`\nenviando ${pontos.length} para ${base}…`);
   const feitos = await enviar(pontos, base, chave);

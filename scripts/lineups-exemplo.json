@@ -33,6 +33,12 @@
     "titulo": "Rastreadora no C antes de entrar",
     "texto": "Saber quantos estão no C decide se vale entrar ou trocar de ponto.",
     "fonte": "https://exemplo.com/lineup/456",
-    "credito": "outra pessoa"
+    "credito": "outra pessoa",
+
+    "_sobre_imagens": "Endereços de fora, no máximo 3. Só são baixados e re-hospedados se você rodar com --midia; sem a flag o ponto entra sem imagem e o link da fonte leva ao original. Linha com imagem exige fonte.",
+    "imagens": [
+      "https://exemplo.com/passo-1.webp",
+      "https://exemplo.com/passo-2.webp"
+    ]
   }
 ]
