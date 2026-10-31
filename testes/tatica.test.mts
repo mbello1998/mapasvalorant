@@ -193,9 +193,9 @@ test("lerPontos descarta só os itens quebrados e sem id", () => {
 // apareceria. O conjunto de mapas aqui é o dos mapas que o acervo cita.
 const MAPAS_DO_ACERVO = new Set(ACERVO.map((p) => p.mapa));
 
-test("o acervo não está vazio e cobre 13 mapas", () => {
+test("o acervo não está vazio e cobre 6 mapas", () => {
   assert.ok(ACERVO.length > 0);
-  assert.equal(MAPAS_DO_ACERVO.size, 13);
+  assert.equal(MAPAS_DO_ACERVO.size, 6);
 });
 
 test("todo ponto do acervo passa por normalizarPonto sem erro", () => {

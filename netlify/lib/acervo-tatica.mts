@@ -12,8 +12,10 @@
  * a smoke cai) envelhece devagar; alinhamento fino de mira não entra aqui, de
  * propósito, porque é o que mais erra a cada patch.
  *
- * Mapas em que o autor tem menos segurança (Fracture, Pearl, Lotus, Sunset,
- * Abyss, Corrode e Summit) têm só posições genéricas de ataque e defesa.
+ * Só entram os mapas que o autor conhece o bastante para dizer algo (Ascent,
+ * Split, Bind, Haven, Icebox e Breeze). Fracture, Pearl, Lotus, Sunset, Abyss,
+ * Corrode e Summit ficam sem pontos de propósito: um mapa vazio convida o dono a
+ * cadastrar o dele; um conselho tirado só do nome de um callout é ruído.
  */
 
 import type { Ponto } from "./tatica.mts";
@@ -24,16 +26,9 @@ export type PontoAcervo = Omit<Ponto, "id" | "criadoEm">;
 const MAPA = {
   ascent: "7eaecc1b-4337-bbf6-6ab9-04b8f06b3319",
   split: "d960549e-485c-e861-8d71-aa9d1aed12a2",
-  fracture: "b529448b-4d60-346e-e89e-00a4c527a405",
   bind: "2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba",
   breeze: "2fb9a4fd-47b8-4e7d-a969-74b4046ebd53",
-  abyss: "224b0a95-48b9-f703-1bd8-67aca101a61f",
-  lotus: "2fe4ed3a-450a-948b-6d6b-e89a78e680a9",
-  sunset: "92584fbe-486a-b1b2-9faa-39b0f486b498",
-  pearl: "fd267378-4d1d-484f-ff52-77821ed10dc2",
-  summit: "756da597-416b-c0f2-f47b-afbdf28670bc",
   icebox: "e2ad5c54-4114-a870-9641-8ea21279579a",
-  corrode: "1c18ab1f-420d-0d8b-71d0-77ad3c439115",
   haven: "2bee0dc9-4ffe-519b-1cbd-7fbe763a6047",
 } as const;
 
@@ -91,7 +86,7 @@ export const ACERVO: PontoAcervo[] = [
   pixel(MAPA.ascent, AGENTE.brimstone, SMOKE.brimstone, "ataque",
     [0.603, 0.259] /* A Acesso */, [0.398, 0.295] /* A Árvore */,
     "Fumaça na Árvore para entrar no A",
-    "A Fumaça Celeste é posta pelo mapa, então o Brimstone nem precisa estar perto: fique no Acesso e feche a Árvore, que tira a visão dos defensores que seguram o A pelo lado do meio. O time entra pelo Principal enquanto a fumaça dura."),
+    "Feche a Árvore com a Fumaça Celeste, que tira a visão dos defensores que seguram o A pelo lado do meio. O time entra pelo Principal enquanto a fumaça dura."),
   pixel(MAPA.ascent, AGENTE.astra, SMOKE.astra, "ataque",
     [0.665, 0.380] /* Meio Topo */, [0.525, 0.411] /* Meio Passarela */,
     "Nebulosa na Passarela para tomar o meio",
@@ -114,7 +109,7 @@ export const ACERVO: PontoAcervo[] = [
   pixel(MAPA.split, AGENTE.brimstone, SMOKE.brimstone, "ataque",
     [0.650, 0.166] /* A Acesso */, [0.472, 0.360] /* A Rampas */,
     "Fumaça nas Rampas para entrar no A",
-    "As Rampas dão ao defensor uma linha de cima sobre quem entra no A. Fechar essa linha com a Fumaça Celeste, ainda do Acesso, deixa o time chegar ao ponto com menos gente olhando."),
+    "As Rampas dão ao defensor uma linha de cima sobre quem entra no A. Fechar essa linha com a Fumaça Celeste deixa o time chegar ao ponto com menos gente olhando."),
 
   /* --------------------------------------------------------------------- Bind -- */
   posicao(MAPA.bind, "ataque", [0.624, 0.497] /* A Curto */,
@@ -145,11 +140,11 @@ export const ACERVO: PontoAcervo[] = [
   pixel(MAPA.haven, AGENTE.brimstone, SMOKE.brimstone, "ataque",
     [0.664, 0.766] /* C Acesso */, [0.493, 0.629] /* C Garagem */,
     "Fumaça na Garagem para entrar no C",
-    "A Garagem é de onde o defensor segura o C de cima. Fechar a Garagem com a Fumaça Celeste, a partir do Acesso do C, deixa o time entrar no ponto sem esse ângulo."),
+    "A Garagem é de onde o defensor segura o C de cima. Fechar a Garagem com a Fumaça Celeste deixa o time entrar no ponto sem esse ângulo."),
   pixel(MAPA.haven, AGENTE.clove, SMOKE.clove, "ataque",
     [0.664, 0.766] /* C Acesso */, [0.419, 0.643] /* C Janela */,
     "Artimanha na Janela do C",
-    "Complementa a fumaça na Garagem: a Janela é o outro ângulo de cima sobre o C. A Artimanha também é posta pelo mapa, a partir do Acesso."),
+    "Complementa a fumaça na Garagem: a Janela é o outro ângulo de cima sobre o C."),
 
   /* ------------------------------------------------------------------- Icebox -- */
   posicao(MAPA.icebox, "ataque", [0.552, 0.470] /* B Tubo */,
@@ -167,7 +162,7 @@ export const ACERVO: PontoAcervo[] = [
     "O Boneco de Neve fica no canto do B. Segure ali perto do time e mude de ângulo depois de abrir fogo."),
   posicao(MAPA.icebox, "ataque", [0.646, 0.180] /* B Ponto */,
     "Viper no pós-plant do B",
-    "Depois de plantar no B, a Viper usa a Cortina Tóxica para cortar a visão de quem tenta desarmar e o Poço Peçonhento para punir quem entra na área da bomba. Planta e sai da linha de visão do defensor antes de usar.",
+    "Depois de plantar no B, a Viper usa a Cortina Tóxica, habilidade normal, para cortar a visão de quem tenta desarmar. Planta e sai da linha de visão do defensor antes de usar. O Poço Peçonhento é a ultimate dela e só aparece em algumas rodadas da partida: quando estiver carregada, vale para o pós-plant, mas não conte com ela.",
     AGENTE.viper),
 
   /* ------------------------------------------------------------------- Breeze -- */
@@ -180,55 +175,5 @@ export const ACERVO: PontoAcervo[] = [
   pixel(MAPA.breeze, AGENTE.brimstone, SMOKE.brimstone, "ataque",
     [0.763, 0.683] /* A Loja */, [0.847, 0.469] /* A Pirâmides */,
     "Fumaça nas Pirâmides para entrar no A",
-    "As Pirâmides dão cobertura ao defensor do A. Feche-as com a Fumaça Celeste a partir da Loja, antes de o time entrar no ponto."),
-
-  /* ----------------------------------------------- Mapas só com posições gerais -- */
-  posicao(MAPA.fracture, "ataque", [0.826, 0.697] /* A Principal */,
-    "Entrar no A pelo Principal",
-    "Posição genérica. No Fracture o ataque pode vir de dois lados e a defesa fica no meio; o A Principal é a entrada do ataque ao ponto A. Confira a rota no jogo antes de repetir."),
-  posicao(MAPA.fracture, "defesa", [0.293, 0.504] /* B Gerador */,
-    "Defender o B pelo Gerador",
-    "Posição genérica. O Gerador fica na frente do B e dá ao defensor uma linha para quem chega. Defenda perto do time."),
-
-  posicao(MAPA.pearl, "ataque", [0.455, 0.702] /* Meio Praça */,
-    "Meio: a Praça",
-    "Posição genérica. A Praça é a boca do meio do Pearl; quem a controla ameaça o A e o B sem se comprometer."),
-  posicao(MAPA.pearl, "defesa", [0.527, 0.549] /* Meio Portas */,
-    "Meio: as Portas",
-    "Posição genérica. As Portas do meio dão ao defensor uma leitura do ataque antes de ele escolher o ponto. Não segure sozinho."),
-
-  posicao(MAPA.lotus, "ataque", [0.503, 0.661] /* B Pilares */,
-    "B pelos Pilares",
-    "Posição genérica. Os Pilares são a entrada do ataque ao B, no meio do Lotus. Com três pontos, escolha o B depois de ver onde a defesa está."),
-  posicao(MAPA.lotus, "defesa", [0.564, 0.365] /* B Superior */,
-    "Defender o B por cima",
-    "Posição genérica. O B Superior fica dentro da área do B, longe da entrada do ataque. Segure com o time por perto."),
-
-  posicao(MAPA.sunset, "ataque", [0.406, 0.562] /* Meio Pátio */,
-    "Meio: o Pátio",
-    "Posição genérica. O Pátio é o centro do Sunset; controlar o meio abre os dois pontos."),
-  posicao(MAPA.sunset, "defesa", [0.235, 0.531] /* B Mercado */,
-    "Defender o B pelo Mercado",
-    "Posição genérica. O Mercado dá ao defensor do B uma leitura da entrada. Segure com um colega."),
-
-  posicao(MAPA.abyss, "ataque", [0.543, 0.451] /* Meio Passarela */,
-    "Meio pela Passarela",
-    "Posição genérica. A Passarela cruza o meio. O Abyss não tem muro nas bordas, então cuidado com as quedas ao disputar ângulo."),
-  posicao(MAPA.abyss, "defesa", [0.451, 0.526] /* Meio Biblioteca */,
-    "Meio defensivo pela Biblioteca",
-    "Posição genérica. A Biblioteca fica no meio e dá ao defensor um ponto de leitura. Cuidado com as quedas nas bordas."),
-
-  posicao(MAPA.corrode, "ataque", [0.708, 0.197] /* A Acesso */,
-    "Acesso do A",
-    "Posição genérica. O Acesso do A é onde o ataque se junta antes de entrar. Entre com o time e com utilidade."),
-  posicao(MAPA.corrode, "defesa", [0.398, 0.258] /* A Ponto */,
-    "Defender o A perto do ponto",
-    "Posição genérica. Na defesa, fique perto do ponto e do time. Ainda não há um canto de referência testado para este mapa."),
-
-  posicao(MAPA.summit, "ataque", [0.694, 0.741] /* A Saguão */,
-    "Saguão do A",
-    "Posição genérica. O Saguão do A é onde o ataque se junta antes de entrar. Entre com o time e com utilidade."),
-  posicao(MAPA.summit, "defesa", [0.151, 0.338] /* B Ponto */,
-    "Defender o B perto do ponto",
-    "Posição genérica. Na defesa, fique perto do ponto e do time. Ainda não há um canto de referência testado para este mapa."),
+    "As Pirâmides dão cobertura ao defensor do A. Feche-as com a Fumaça Celeste antes de o time entrar no ponto."),
 ];
