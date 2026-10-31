@@ -1574,3 +1574,134 @@ a.feed__item:hover::before { background: var(--sinal); }
 }
 .sens__zerar:hover { color: var(--sinal-tinta); }
 
+
+
+/* ==========================================================================
+   Sala de Mapas. Fica aqui, no arquivo único, pelo mesmo motivo do bloco acima.
+   O minimapa é um quadrado com camadas empilhadas (imagem, nomes, linhas,
+   marcadores). Tudo é posicionado em porcentagem, porque as coordenadas
+   guardadas são fração do quadro e valem em qualquer tamanho de tela.
+   ========================================================================== */
+
+.sala__mapas { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+.sala__mapa-botao {
+  --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina);
+  border: 0; cursor: pointer; width: 132px;
+  padding: var(--e-1); display: grid; gap: var(--e-1); align-content: start;
+  text-align: center;
+}
+.sala__mapa-botao:hover { --chf-fundo: var(--aco-alto); }
+.sala__mapa-botao[aria-pressed="true"] { --chf-borda: var(--sinal); --chf-anel: 2px; }
+.sala__miniatura { width: 100%; height: 40px; object-fit: cover; }
+.sala__mapa-nome { font-size: var(--t-xs); font-weight: 600; color: var(--tinta-2); line-height: 1.2; }
+.sala__mapa-botao[aria-pressed="true"] .sala__mapa-nome { color: var(--luz); }
+
+.sala__grade {
+  display: grid; gap: var(--e-5); align-items: start;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+}
+.sala__dica { margin-top: var(--e-2); font-size: var(--t-s); color: var(--tinta-3); line-height: 1.5; }
+
+.minimapa__quadro {
+  position: relative; width: 100%; max-width: 780px; aspect-ratio: 1 / 1;
+  background: var(--aco-fundo); border: var(--borda) solid var(--linha-fina);
+  cursor: crosshair; overflow: hidden; touch-action: manipulation;
+}
+.minimapa__imagem {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; user-select: none; -webkit-user-drag: none;
+}
+.minimapa__callouts, .minimapa__linhas, .minimapa__pontos {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  /* Só os marcadores recebem clique; o resto deixa o clique chegar ao quadro,
+     que é onde o filtro por lugar escuta. */
+  pointer-events: none;
+}
+.minimapa__callout {
+  position: absolute; transform: translate(-50%, -50%);
+  padding: 0 4px; white-space: nowrap;
+  font-size: clamp(8px, 1.15vw, 11px); font-weight: 600; line-height: 1.5;
+  color: var(--luz); background: color-mix(in srgb, var(--aco-fundo) 70%, transparent);
+}
+
+.minimapa__linha { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.minimapa__linha--ataque { stroke: var(--sinal); }
+/* Tracejado: o lado não pode depender só da cor. */
+.minimapa__linha--defesa { stroke: var(--verde); stroke-dasharray: 7 5; }
+
+.minimapa__origem {
+  position: absolute; width: 9px; height: 9px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 2px solid var(--sinal); background: var(--aco-fundo);
+}
+.minimapa__origem--defesa { border-color: var(--verde); }
+
+.minimapa__ponto {
+  --corte: 6px; --chf-fundo: var(--aco); --chf-borda: var(--sinal);
+  position: absolute; transform: translate(-50%, -50%);
+  width: 28px; height: 28px; padding: 0; border: 0; cursor: pointer;
+  display: grid; place-items: center; pointer-events: auto; z-index: 1;
+}
+.minimapa__ponto--defesa { --chf-borda: var(--verde); }
+/* Posição não tem ícone de habilidade: o miolo cheio a distingue do pixel. */
+.minimapa__ponto--posicao { --chf-fundo: var(--sinal); }
+.minimapa__ponto--posicao.minimapa__ponto--defesa { --chf-fundo: var(--verde); }
+.minimapa__ponto:hover { --chf-borda: var(--luz); z-index: 2; }
+.minimapa__ponto[aria-pressed="true"] { --chf-borda: var(--luz); --chf-anel: 3px; z-index: 3; }
+.minimapa__icone { position: relative; z-index: 1; width: 18px; height: 18px; object-fit: contain; }
+
+/* Círculo porque ele É um raio: mostra até onde o clique alcança. */
+.minimapa__lugar {
+  position: absolute; width: 12%; aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border: 2px dashed var(--luz); border-radius: 50%;
+}
+
+.minimapa__barra { display: flex; flex-wrap: wrap; gap: var(--e-2); margin-top: var(--e-3); }
+
+.sala__lateral { display: grid; gap: var(--e-4); align-content: start; }
+.sala__bloco { display: grid; gap: var(--e-2); }
+.sala__bloco .filtros { margin-bottom: 0; }
+.sala__rotulo { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+.sala__lugar { font-size: var(--t-s); color: var(--tinta-2); line-height: 1.5; }
+.sala__select {
+  width: 100%; padding: 0.55rem 0.7rem;
+  background: var(--aco-fundo); color: var(--luz);
+  border: var(--borda) solid var(--linha); font: inherit; font-size: var(--t-s);
+}
+.sala__select:focus-visible { outline: 2px solid var(--latao); outline-offset: 2px; }
+
+.ponto {
+  --corte: var(--corte-m); --chf-fundo: var(--aco); --chf-borda: var(--linha-fina);
+  padding: var(--e-4); display: grid; gap: var(--e-3); align-content: start;
+}
+.ponto__vazio { color: var(--tinta-3); font-size: var(--t-s); line-height: 1.5; }
+.ponto__titulo { font-size: var(--t-m); overflow-wrap: anywhere; }
+.ponto__meta { font-size: var(--t-s); color: var(--latao); font-weight: 600; }
+/* white-space: pre-line mantém as quebras de linha que a pessoa escreveu. */
+.ponto__texto { color: var(--tinta-2); line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.ponto__fotos { display: grid; gap: var(--e-2); }
+.ponto__fotos img { width: 100%; height: auto; border: var(--borda) solid var(--linha-fina); }
+.ponto__video { color: var(--sinal-tinta); font-weight: 600; font-size: var(--t-s); }
+
+.lista-pontos {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--e-2);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.lista-pontos__item {
+  --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina);
+  width: 100%; min-height: 44px; border: 0; cursor: pointer; text-align: left;
+  padding: var(--e-2) var(--e-3); display: grid; gap: 2px;
+}
+.lista-pontos__item:hover { --chf-fundo: var(--aco-alto); }
+.lista-pontos__item[aria-pressed="true"] { --chf-borda: var(--sinal); --chf-anel: 2px; }
+.lista-pontos__titulo { font-weight: 600; overflow-wrap: anywhere; }
+.lista-pontos__meta { font-size: var(--t-xs); color: var(--tinta-3); }
+
+@media (max-width: 980px) {
+  .sala__grade { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .sala__mapa-botao { width: calc(50% - var(--e-1)); }
+}
