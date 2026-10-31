@@ -208,10 +208,6 @@ textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; font-size: 0.
 .mod-nivel:focus-visible { outline: 2px solid var(--sinal); outline-offset: 1px; }
 
 /* ------------------------------------------------------- aba Tática ------- */
-/* O painel não carrega o site.css, então o minimapa precisa das suas camadas
-   aqui também. São as mesmas classes `.minimapa*` que o minimapa.js escreve na
-   página pública: se mexer no desenho de lá, mexa aqui. Os tokens (cores,
-   espaços) já vêm do tokens.css. */
 .btn[aria-pressed="true"] { --chf-fundo: var(--luz); --chf-borda: var(--luz); color: var(--aco); }
 
 .tat-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
@@ -223,6 +219,11 @@ textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; font-size: 0.
 .tat-selo { color: var(--sinal-tinta); }
 .tat-selo--ok { color: var(--verde); }
 
+/* O painel não carrega o site.css, então o minimapa precisa aqui de posição,
+   tamanho e camadas. São as mesmas classes `.minimapa*` e `.pilula` que o
+   minimapa.js escreve na página pública: se mexer nelas lá, mexa aqui. O
+   chanfro, o fundo e a borda do marcador e da pílula vêm da `.chf` do próprio
+   admin.css (o marcador leva a classe), e os tokens vêm do tokens.css. */
 .pilula {
   --corte: 5px; --chf-fundo: var(--aco); --chf-borda: var(--linha);
   border: 0; cursor: pointer; padding: 0.42rem 0.85rem;
@@ -262,16 +263,11 @@ textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; font-size: 0.
 }
 .minimapa__origem--defesa { border-color: var(--verde); }
 
-/* O marcador não leva a classe `.chf`, então o fundo e a borda chanfrados são
-   desenhados aqui mesmo, com as mesmas variáveis. */
 .minimapa__ponto {
   --corte: 6px; --chf-fundo: var(--aco); --chf-borda: var(--sinal);
   position: absolute; transform: translate(-50%, -50%);
   width: 28px; height: 28px; padding: 0; border: 0; cursor: pointer;
   display: grid; place-items: center; pointer-events: auto; z-index: 1;
-  background: var(--chf-fundo);
-  box-shadow: inset 0 0 0 var(--chf-anel, 2px) var(--chf-borda);
-  clip-path: polygon(0 0, calc(100% - var(--corte)) 0, 100% var(--corte), 100% 100%, var(--corte) 100%, 0 calc(100% - var(--corte)));
 }
 .minimapa__ponto--defesa { --chf-borda: var(--verde); }
 .minimapa__ponto--posicao { --chf-fundo: var(--sinal); }

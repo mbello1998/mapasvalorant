@@ -214,7 +214,7 @@ export function montarMinimapa(alvo, { mapa, pontos = [], agentes = [], aoEscolh
       const habilidade = habilidadeDoPonto(p, agentes);
       const botao = elemento("button", {
         type: "button",
-        class: `minimapa__ponto minimapa__ponto--${p.lado} minimapa__ponto--${p.tipo}`,
+        class: `chf minimapa__ponto minimapa__ponto--${p.lado} minimapa__ponto--${p.tipo}`,
         "data-foco": `ponto:${p.id}`,
         "aria-label": rotuloDoPonto(p, agentes),
         "aria-pressed": String(p.id === selecionado),
