@@ -89,6 +89,7 @@ para a seção de agentes da inicial. De cada agente interessam `uuid`,
   "texto": "Encoste no canto da caixa, mire o topo do poste e solte.",
   "imagens": ["/api/media/clove-heaven-1.webp"],  // até 3, em ordem
   "video": "https://www.youtube.com/watch?v=...", // opcional
+  "fonte": "https://exemplo.com/pagina",         // opcional: onde você viu
   "conferido": false,
   "criadoEm": "2026-10-30T23:00:00.000Z"
 }
@@ -108,6 +109,18 @@ Regras que o servidor aplica, não a tela:
 - `imagens` é uma lista de até 3 caminhos servidos por `/api/media/`, em
   ordem: onde ficar, onde mirar, o resultado. Um print só raramente ensina
   um pixel, e três é o que cabe sem virar álbum.
+- `fonte` é um endereço `https` de onde o lineup foi visto, e existe para dar
+  crédito sem hospedar nada de ninguém. A tela mostra só o domínio como texto
+  do link, não um título escrito à mão: assim o crédito diz para onde leva, e
+  ninguém consegue disfarçar o destino com um rótulo bonito. O link sai com
+  `rel="noopener noreferrer nofollow"` e abre noutra aba.
+
+  **O que a fonte não é:** permissão para usar o material de lá. Imagem e
+  vídeo de outro site continuam de fora — `imagens` só aceita caminho de
+  `/api/media/`, que é o que o dono subiu, e `video` só aceita link do
+  YouTube, que o player de lá serve com o crédito de quem publicou. Apontar o
+  `<img>` para o CDN alheio seria exibir o trabalho de outro e gastar a banda
+  que ele paga.
 - Teto de 2000 pontos no total, para a lista caber numa leitura só.
 
 ### Onde fica
@@ -228,7 +241,8 @@ Antes de dizer que está pronto:
 4. Os filtros de agente, habilidade, lado e ponto no mapa recortam o que
    deviam.
 5. A rota recusa, com a mensagem certa: sem chave, mapa inexistente,
-   coordenada fora de 0–1, pixel sem destino, vídeo que não é do YouTube.
+   coordenada fora de 0–1, pixel sem destino, vídeo que não é do YouTube,
+   fonte que não começa com `https://`.
 6. A página abre e é usável num celular.
 7. Os outros caminhos do site continuam de pé — inicial, estande, linha e
    arsenal.
