@@ -263,9 +263,31 @@ async function principal() {
     return i === -1 ? padrao : args[i + 1];
   };
 
-  const linhas = JSON.parse(await readFile(entrada, "utf8"));
+  // Arquivo que não existe e JSON torto são os dois erros de quem roda isto
+  // pela primeira vez. Um stack trace do Node não ajuda ninguém a consertar.
+  let bruto;
+  try {
+    bruto = await readFile(entrada, "utf8");
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      console.error(`não achei o arquivo "${entrada}".`);
+      console.error("Há um modelo pronto em scripts/lineups-exemplo.json — copie e edite:");
+      console.error("  node scripts/importar-lineups.mjs scripts/lineups-exemplo.json");
+    } else {
+      console.error(`não consegui ler "${entrada}": ${e.message}`);
+    }
+    process.exit(2);
+  }
+
+  let linhas;
+  try {
+    linhas = JSON.parse(bruto);
+  } catch (e) {
+    console.error(`"${entrada}" não é JSON válido: ${e.message}`);
+    process.exit(2);
+  }
   if (!Array.isArray(linhas)) {
-    console.error("a entrada tem de ser um array de lineups");
+    console.error(`"${entrada}" tem de ser um array de lineups, entre [ e ].`);
     process.exit(2);
   }
 
