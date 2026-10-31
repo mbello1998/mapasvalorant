@@ -1250,7 +1250,7 @@ const tat = {
 
 const formVazio = () => ({
   agente: "", habilidade: "", lado: "ataque",
-  titulo: "", texto: "", imagens: ["", "", ""], video: "", conferido: false,
+  titulo: "", texto: "", imagens: ["", "", ""], video: "", fonte: "", conferido: false,
 });
 
 function limparRascunho() {
@@ -1334,7 +1334,7 @@ function abrirPontoParaEditar(p) {
     agente: p.agente ?? "", habilidade: p.habilidade ?? "", lado: p.lado,
     titulo: p.titulo ?? "", texto: p.texto ?? "",
     imagens: [0, 1, 2].map((i) => p.imagens?.[i] ?? ""),
-    video: p.video ?? "", conferido: p.conferido === true,
+    video: p.video ?? "", fonte: p.fonte ?? "", conferido: p.conferido === true,
   };
   pintarEditorDeTatica();
   tat.refs.form?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1415,6 +1415,9 @@ function pintarFormDeTatica() {
   const video = elemento("input", { type: "url", value: f.video, placeholder: "https://www.youtube.com/watch?v=…" });
   video.addEventListener("input", () => { f.video = video.value; });
 
+  const fonte = elemento("input", { type: "url", value: f.fonte, maxlength: 200, placeholder: "https://…" });
+  fonte.addEventListener("input", () => { f.fonte = fonte.value; });
+
   const conferido = elemento("input", { type: "checkbox" });
   conferido.checked = f.conferido;
   conferido.addEventListener("change", () => { f.conferido = conferido.checked; });
@@ -1428,7 +1431,12 @@ function pintarFormDeTatica() {
   alvo.append(
     elemento("p", { class: "bloco__nota", texto: tat.editando ? `Editando: ${f.titulo || "(sem título)"}` : "Ponto novo." }),
     elemento("div", { class: "dupla" }, [rotulado("Agente", agentes), rotulado("Habilidade", habilidades)]),
-    elemento("div", { class: "dupla" }, [rotulado("Lado", lado), rotulado("Vídeo (opcional)", video, "Só link do YouTube.")]),
+    rotulado("Lado", lado),
+    elemento("div", { class: "dupla" }, [
+      rotulado("Vídeo (opcional)", video, "Só link do YouTube."),
+      // A fonte é crédito, não conteúdo: a página mostra só o domínio como link.
+      rotulado("Fonte (opcional)", fonte, "Link https de onde você viu o lineup. A página mostra só o domínio."),
+    ]),
     rotulado("Título", titulo, "Até 80 caracteres."),
     rotulado("Texto", texto, "Até 600 caracteres. Sem marcação."),
     // As imagens guardam a ordem: a página pública mostra nesta sequência.
@@ -1469,6 +1477,7 @@ async function salvarPontoDeTatica(botao) {
     texto: f.texto,
     imagens: f.imagens.map((i) => i.trim()).filter(Boolean),
     video: f.video.trim() || null,
+    fonte: f.fonte.trim() || null,
     conferido: f.conferido,
   };
 

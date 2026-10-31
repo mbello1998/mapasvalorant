@@ -29,6 +29,8 @@ export type Ponto = {
   texto: string;
   imagens: string[];
   video: string | null;
+  /** Endereço https de onde o dono viu o lineup, para dar crédito. Null quando não há. */
+  fonte: string | null;
   /** Só vira true quando o dono testou o ponto no jogo. */
   conferido: boolean;
   criadoEm: string;
@@ -51,6 +53,7 @@ const VIDEO = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{6,}
 // Identificadores, não texto livre: cortar um uuid o transformaria em outro.
 const MAX_AGENTE = 64;
 const MAX_HABILIDADE = 60;
+const MAX_FONTE = 200;
 // `..` fica de fora: a classe de caracteres aceita pontos e deixaria passar um
 // caminho que sobe de pasta.
 const IMAGEM = /^\/api\/media\/(?!.*\.\.)[\w.-]+$/;
@@ -121,6 +124,22 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
   const video = texto(b.video);
   if (video && !VIDEO.test(video)) return falha("O vídeo precisa ser um link do YouTube.");
 
+  // A fonte é só um link de crédito: aceita qualquer site https, ao contrário do
+  // vídeo, porque ela nunca vira <img> nem player — a página mostra apenas o
+  // domínio como texto do link. Ausente, null e vazio são "sem fonte", não erro.
+  let fonte: string | null = null;
+  if (b.fonte != null && b.fonte !== "") {
+    if (typeof b.fonte !== "string") return falha("A fonte precisa ser um endereço https.");
+    const valor = b.fonte.trim();
+    if (valor) {
+      if (!valor.startsWith("https://") || valor.length > MAX_FONTE || /[<>]/.test(valor)) {
+        return falha("A fonte precisa ser um endereço https.");
+      }
+      try { new URL(valor); } catch { return falha("A fonte precisa ser um endereço https."); }
+      fonte = valor;
+    }
+  }
+
   const lista = b.imagens == null ? [] : b.imagens;
   if (!Array.isArray(lista)) return falha("Imagens inválidas.");
   if (lista.length > MAX_IMAGENS) return falha("No máximo três imagens por ponto.");
@@ -139,6 +158,7 @@ export function normalizarPonto(bruto: unknown, mapasValidos: Set<string>): Resu
       titulo, texto: corpo,
       imagens: [...(lista as string[])],
       video: video || null,
+      fonte,
       conferido: b.conferido === true,
     },
   };

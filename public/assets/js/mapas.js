@@ -63,6 +63,20 @@ function linkDeVideo(valor) {
   return null;
 }
 
+/**
+ * O endereço de crédito do ponto, ou null. O texto do link é o domínio e nada
+ * mais: um título escrito à mão deixaria disfarçar o destino ("fonte oficial"
+ * apontando para outro lugar), e o domínio sempre diz para onde o clique leva.
+ * O servidor já confere o https; a página confere de novo antes de linkar.
+ */
+function dadosDaFonte(valor) {
+  try {
+    const u = new URL(valor);
+    if (u.protocol === "https:") return { href: u.href, dominio: u.hostname };
+  } catch { /* não é URL */ }
+  return null;
+}
+
 /** Só imagem servida pelo próprio site entra na página. */
 const imagemSegura = (src) => typeof src === "string" && src.startsWith("/api/media/");
 
@@ -134,6 +148,18 @@ function pintarPainel(ponto) {
       class: "ponto__video", href: video, target: "_blank", rel: "noopener noreferrer",
       texto: "Ver o vídeo no YouTube",
     }));
+  }
+
+  const fonte = ponto.fonte ? dadosDaFonte(ponto.fonte) : null;
+  if (fonte) {
+    // nofollow: quem cadastrou escolheu o destino, o site não o endossa.
+    caixa.append(elemento("p", { class: "ponto__fonte" }, [
+      "referência: ",
+      elemento("a", {
+        href: fonte.href, target: "_blank", rel: "noopener noreferrer nofollow",
+        texto: fonte.dominio,
+      }),
+    ]));
   }
 }
 

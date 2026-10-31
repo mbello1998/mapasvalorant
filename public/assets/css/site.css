@@ -1683,6 +1683,8 @@ a.feed__item:hover::before { background: var(--sinal); }
 .ponto__fotos { display: grid; gap: var(--e-2); }
 .ponto__fotos img { width: 100%; height: auto; border: var(--borda) solid var(--linha-fina); }
 .ponto__video { color: var(--sinal-tinta); font-weight: 600; font-size: var(--t-s); }
+.ponto__fonte { font-size: var(--t-s); color: var(--tinta-3); overflow-wrap: anywhere; }
+.ponto__fonte a { color: var(--sinal-tinta); font-weight: 600; }
 
 .lista-pontos {
   list-style: none; margin: 0; padding: 0;

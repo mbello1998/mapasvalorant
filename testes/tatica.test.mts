@@ -161,6 +161,40 @@ test("imagens gravadas são cópia do array de quem chamou", () => {
   }
 });
 
+test("aceita fonte https e a guarda sem espaços nas pontas", () => {
+  const r = normalizarPonto({ ...base, fonte: "  https://exemplo.com/pagina?a=1  " }, MAPAS);
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(r.ponto.fonte, "https://exemplo.com/pagina?a=1");
+});
+
+test("recusa fonte http e fonte javascript", () => {
+  const msg = "A fonte precisa ser um endereço https.";
+  assert.equal(erro(normalizarPonto({ ...base, fonte: "http://exemplo.com/a" }, MAPAS)), msg);
+  assert.equal(erro(normalizarPonto({ ...base, fonte: "javascript:alert(1)" }, MAPAS)), msg);
+});
+
+test("recusa fonte com mais de 200 caracteres, e aceita a de exatamente 200", () => {
+  const prefixo = "https://exemplo.com/";
+  assert.equal(normalizarPonto({ ...base, fonte: prefixo + "a".repeat(200 - prefixo.length) }, MAPAS).ok, true);
+  assert.equal(normalizarPonto({ ...base, fonte: prefixo + "a".repeat(201 - prefixo.length) }, MAPAS).ok, false);
+});
+
+test("recusa fonte com marcação ou que não é URL", () => {
+  assert.equal(normalizarPonto({ ...base, fonte: "https://exemplo.com/<b>" }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, fonte: "https://" }, MAPAS).ok, false);
+  assert.equal(normalizarPonto({ ...base, fonte: 42 }, MAPAS).ok, false);
+});
+
+test("fonte ausente, null ou vazia grava null", () => {
+  for (const fonte of [undefined, null, "", "   "]) {
+    const r = normalizarPonto({ ...base, fonte }, MAPAS);
+    assert.equal(r.ok, true);
+    if (r.ok) assert.equal(r.ponto.fonte, null);
+  }
+  const r = normalizarPonto(base, MAPAS);
+  assert.equal(r.ok && r.ponto.fonte, null);
+});
+
 // lerPontos: o depósito pode estar vazio, corrompido ou ter mudado de formato.
 // Nada disso pode virar 500 na página pública.
 const gravado = {

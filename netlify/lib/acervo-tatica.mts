@@ -57,7 +57,7 @@ function posicao(
 ): PontoAcervo {
   return {
     mapa, agente, habilidade: null, lado, tipo: "posicao",
-    de: c(de), para: null, titulo, texto, imagens: [], video: null, conferido: false,
+    de: c(de), para: null, titulo, texto, imagens: [], video: null, fonte: null, conferido: false,
   };
 }
 
@@ -68,7 +68,7 @@ function pixel(
 ): PontoAcervo {
   return {
     mapa, agente, habilidade, lado, tipo: "pixel",
-    de: c(de), para: c(para), titulo, texto, imagens: [], video: null, conferido: false,
+    de: c(de), para: c(para), titulo, texto, imagens: [], video: null, fonte: null, conferido: false,
   };
 }
 
