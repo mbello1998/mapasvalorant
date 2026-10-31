@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
+    "test": "node --test \"testes/**/*.test.mts\"",
     "deploy": "netlify deploy --prod"
   },
   "dependencies": {

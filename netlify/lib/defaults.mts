@@ -43,6 +43,7 @@ export const conteudoPadrao = {
     { rotulo: "Estande", href: "#estande" },
     { rotulo: "Linha de Tiro", href: "linha.html" },
     { rotulo: "Arsenal", href: "arsenal.html" },
+    { rotulo: "Sala de Mapas", href: "mapas.html" },
     { rotulo: "Ranking", href: "ranking.html" },
     { rotulo: "Ao vivo", href: "#aovivo" },
     { rotulo: "Notícias", href: "#lancamentos" },

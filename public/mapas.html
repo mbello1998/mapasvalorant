@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de Mapas — Estande</title>
+<meta name="description" content="O minimapa oficial de cada mapa do VALORANT com os nomes dos lugares, e em cima dele pixels e posições de ataque e defesa.">
+<meta name="theme-color" content="#16262E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316262E'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23FF4655' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23FF4655'/%3E%3C/svg%3E" id="favicon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="pulo" href="#sala">Pular para o mapa</a>
+
+<nav class="trilho" aria-label="Seções do site">
+  <a class="marca" href="index.html" id="marca">
+    <span class="marca__sigla">Estande</span>
+    <span class="marca__sufixo">BR</span>
+  </a>
+  <div class="trilho__nav" id="nav"></div>
+  <div class="trilho__pe" id="contaTrilho"></div>
+  <div class="trilho__pe trilho__pe--fim">
+    <a class="trilho__eng" href="admin.html">Painel</a>
+  </div>
+</nav>
+
+<main class="palco sala-mapas" id="sala">
+
+  <header class="faixa faixa--fina cabeca">
+    <div class="limite">
+      <h1>Sala de Mapas</h1>
+      <p class="cabeca__linha">
+        O minimapa oficial de cada mapa, com o nome dos lugares. Escolha um agente
+        para ver de onde jogar a habilidade e onde ela cai; sem agente, só as
+        posições de ataque e defesa.
+      </p>
+    </div>
+  </header>
+
+  <section class="faixa faixa--fina" aria-labelledby="mapasTit">
+    <div class="limite">
+      <h2 class="oculto" id="mapasTit">Escolha o mapa</h2>
+      <div class="sala__mapas" id="barraMapas" role="group" aria-label="Mapas">
+        <p class="carregando">Carregando mapas…</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="faixa faixa--nua sala" aria-labelledby="salaTit">
+    <div class="limite">
+      <h2 class="oculto" id="salaTit">Minimapa e filtros</h2>
+
+      <div class="sala__grade">
+        <div class="sala__mapa">
+          <div class="minimapa" id="minimapa"></div>
+          <p class="sala__dica" id="dicaMapa"></p>
+        </div>
+
+        <aside class="sala__lateral" aria-label="Filtros e detalhe do ponto">
+          <div class="sala__bloco">
+            <span class="sala__rotulo" id="rotAgente">Agente</span>
+            <div class="sala__agentes" id="filtroAgente" role="group" aria-labelledby="rotAgente"></div>
+          </div>
+
+          <div class="sala__bloco" id="blocoHabilidade" hidden>
+            <span class="sala__rotulo" id="rotHabilidade">Habilidade</span>
+            <div class="filtros" id="filtroHabilidade" role="group" aria-labelledby="rotHabilidade"></div>
+          </div>
+
+          <div class="sala__bloco">
+            <span class="sala__rotulo" id="rotLado">Lado</span>
+            <div class="filtros" id="filtroLado" role="group" aria-labelledby="rotLado"></div>
+          </div>
+
+          <div class="sala__bloco" id="blocoLugar" hidden>
+            <span class="sala__rotulo">Lugar</span>
+            <p class="sala__lugar">Só o que sai ou cai perto do ponto marcado no mapa.</p>
+            <button class="pilula chf" type="button" id="limparLugar">Limpar lugar</button>
+          </div>
+
+          <div class="ponto" id="painelPonto" aria-live="polite">
+            <p class="ponto__vazio">Clique num marcador do mapa, ou num item da lista abaixo, para ver o ponto.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="faixa faixa--fina" aria-labelledby="listaTit">
+    <div class="limite">
+      <div class="titulo-secao">
+        <h2 id="listaTit">Lista de pontos</h2>
+        <p>A mesma coisa que está no mapa, em texto.</p>
+        <span class="titulo-secao__conta" id="listaConta"></span>
+      </div>
+      <ul class="lista-pontos" id="listaPontos"></ul>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape palco">
+  <div class="limite rodape__grade">
+    <div>
+      <p class="rodape__texto" data-campo="rodape.texto"></p>
+      <p class="rodape__aviso" data-campo="rodape.aviso"></p>
+    </div>
+    <div class="rodape__links" id="rodapeLinks"></div>
+  </div>
+</footer>
+
+<script type="module" src="assets/js/mapas.js"></script>
+</body>
+</html>

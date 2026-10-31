@@ -206,3 +206,78 @@ textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; font-size: 0.
   font-variant-numeric: tabular-nums;
 }
 .mod-nivel:focus-visible { outline: 2px solid var(--sinal); outline-offset: 1px; }
+
+/* ------------------------------------------------------- aba Tática ------- */
+.btn[aria-pressed="true"] { --chf-fundo: var(--luz); --chf-borda: var(--luz); color: var(--aco); }
+
+.tat-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.tat-barra__rotulo {
+  font-size: 0.625rem; color: var(--tinta-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.tat-minimapa { margin-top: 0.25rem; }
+.tat-selo { color: var(--sinal-tinta); }
+.tat-selo--ok { color: var(--verde); }
+
+/* O painel não carrega o site.css, então o minimapa precisa aqui de posição,
+   tamanho e camadas. São as mesmas classes `.minimapa*` e `.pilula` que o
+   minimapa.js escreve na página pública: se mexer nelas lá, mexa aqui. O
+   chanfro, o fundo e a borda do marcador e da pílula vêm da `.chf` do próprio
+   admin.css (o marcador leva a classe), e os tokens vêm do tokens.css. */
+.pilula {
+  --corte: 5px; --chf-fundo: var(--aco); --chf-borda: var(--linha);
+  border: 0; cursor: pointer; padding: 0.42rem 0.85rem;
+  font-size: 0.8125rem; font-weight: 600; color: var(--tinta-2);
+}
+.pilula:hover { --chf-fundo: var(--aco-alto); color: var(--luz); }
+.pilula[aria-pressed="true"] { --chf-borda: var(--luz); --chf-fundo: var(--luz); color: var(--aco); }
+
+.minimapa__quadro {
+  position: relative; width: 100%; max-width: 780px; aspect-ratio: 1 / 1;
+  background: var(--aco-fundo); border: var(--borda) solid var(--linha-fina);
+  cursor: crosshair; overflow: hidden; touch-action: manipulation;
+}
+.minimapa__imagem {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; user-select: none; -webkit-user-drag: none; display: block;
+}
+.minimapa__callouts, .minimapa__linhas, .minimapa__pontos {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  /* Só os marcadores recebem clique; o resto deixa o clique chegar ao quadro,
+     que é onde a marcação escuta. */
+  pointer-events: none;
+}
+.minimapa__callout {
+  position: absolute; transform: translate(-50%, -50%);
+  padding: 0 4px; white-space: nowrap;
+  font-size: clamp(8px, 1.15vw, 11px); font-weight: 600; line-height: 1.5;
+  color: var(--luz); background: color-mix(in srgb, var(--aco-fundo) 70%, transparent);
+}
+.minimapa__linha { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.minimapa__linha--ataque { stroke: var(--sinal); }
+.minimapa__linha--defesa { stroke: var(--verde); stroke-dasharray: 7 5; }
+.minimapa__origem {
+  position: absolute; width: 9px; height: 9px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 2px solid var(--sinal); background: var(--aco-fundo);
+}
+.minimapa__origem--defesa { border-color: var(--verde); }
+
+.minimapa__ponto {
+  --corte: 6px; --chf-fundo: var(--aco); --chf-borda: var(--sinal);
+  position: absolute; transform: translate(-50%, -50%);
+  width: 28px; height: 28px; padding: 0; border: 0; cursor: pointer;
+  display: grid; place-items: center; pointer-events: auto; z-index: 1;
+}
+.minimapa__ponto--defesa { --chf-borda: var(--verde); }
+.minimapa__ponto--posicao { --chf-fundo: var(--sinal); }
+.minimapa__ponto--posicao.minimapa__ponto--defesa { --chf-fundo: var(--verde); }
+.minimapa__ponto:hover { --chf-borda: var(--luz); z-index: 2; }
+.minimapa__ponto[aria-pressed="true"] { --chf-borda: var(--luz); --chf-anel: 3px; z-index: 3; }
+/* Esperando o destino de um pixel: o clique atravessa os marcadores e chega ao
+   mapa, que o recebe como `para`. Sem isto, mirar perto de outro ponto abria
+   esse ponto para edição em vez de marcar onde a util cai. */
+.tat-minimapa[data-marcando="destino"] .minimapa__ponto { pointer-events: none; }
+.minimapa__icone { width: 18px; height: 18px; object-fit: contain; }
+
+.minimapa__barra { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.875rem; }

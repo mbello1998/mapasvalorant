@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **O projeto não tem git.** `git rev-parse` falha: não é repositório. Os passos de "Commit" deste plano estão escritos como *checkpoint* — `npm test` verde e a verificação manual da tarefa. Se o dono rodar `git init`, cada checkpoint vira um commit sem mais nada a mudar.
+- **Git existe desde 30/10/2026.** O repositório foi inicializado antes da execução, com o estado anterior do site no commit `5f33ee6` e o trabalho na branch `sala-de-mapas`. Cada *checkpoint* deste plano é um commit de verdade. `.env`, `node_modules/` e `.netlify/` estão no `.gitignore` e ficaram fora.
 - **O projeto não tinha testes.** A Tarefa 1 cria `testes/` e o script `npm test`. Nada de dependência nova: `node --test` e type stripping são do Node 24, que é o que está instalado.
 - **CSS num arquivo só.** Todo estilo vai em `public/assets/css/site.css`. O projeto já teve três quebras por CSS separado por página; o comentário no próprio arquivo registra isso.
 - **Texto da interface em português do Brasil**, no tom do resto do site: frase direta, sem exclamação, sem "incrível".
@@ -118,7 +118,7 @@ Expected: PASS, 4 testes.
 **Interfaces:**
 - Consumes: nada.
 - Produces:
-  - `type Ponto` com os campos da especificação (`id, mapa, agente, habilidade, lado, tipo, de, para, titulo, texto, imagem, video, conferido, criadoEm`).
+  - `type Ponto` com os campos da especificação (`id, mapa, agente, habilidade, lado, tipo, de, para, titulo, texto, imagens, video, conferido, criadoEm`).
   - `normalizarPonto(bruto: unknown, mapasValidos: Set<string>) => { ok: true; ponto: Omit<Ponto,"id"|"criadoEm"> } | { ok: false; erro: string }`
   - `LIMITE_PONTOS = 2000`
   - `novoId() => string`
@@ -144,7 +144,9 @@ const base = { mapa: "uuid-ascent", agente: "uuid-clove", habilidade: "Grenade",
 - recusa título com 81 caracteres e texto com 601
 - recusa `titulo: "<script>alert(1)</script>"` → "Nada de marcação no texto."
 - recusa `video: "https://exemplo.com/v"` e aceita `https://www.youtube.com/watch?v=abc`
-- recusa `imagem: "https://outrosite.com/a.png"` e aceita `/api/media/x.webp`
+- recusa `imagens: ["https://outrosite.com/a.png"]` e aceita `["/api/media/x.webp"]`
+- recusa uma lista de 4 imagens → "No máximo três imagens por ponto."
+- aceita `imagens` ausente e grava `[]`
 
 - [ ] **Passo 2: Rodar e ver falhar**
 
@@ -157,7 +159,7 @@ Validação em servidor, como `normalizarConfig` de `progresso.mts` já faz para
 a curva de níveis: a função decide o que é aceitável, o painel é só a
 interface. Marcação é recusada testando `/[<>]/` no título e no texto. `video`
 casa `^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]{6,}` e
-`imagem` casa `^\/api\/media\/[\w.-]+$`. `novoId()` usa
+`imagens` aceita até 3 itens, cada um casando `^\/api\/media\/[\w.-]+$`. `novoId()` usa
 `crypto.randomUUID().slice(0, 8)` com prefixo `p_`.
 
 - [ ] **Passo 4: Rodar e ver passar**
@@ -291,20 +293,29 @@ Principal" na entrada A. É o passo que valida a fórmula da especificação; se
 estiver trocada, nada do resto serve. Repetir num mapa de duas rotas (Split) e
 num de três (Haven).
 
-- [ ] **Passo 7: Conferir os filtros**
+- [ ] **Passo 7: Filtrar clicando no mapa**
+
+`filtrarPorLugar(pontos, {x, y}, raio = 0.06) => Ponto[]` em `minimapa.js`:
+devolve os pontos cujo `de` **ou** `para` cai dentro do raio do clique.
+Teste em `testes/minimapa.test.mts` com três pontos — um que sai do lugar,
+um que cai no lugar e um longe dos dois. Na tela, clicar no minimapa fora de
+um marcador liga esse filtro e mostra um botão para limpá-lo.
+
+- [ ] **Passo 8: Conferir os filtros**
 
 Com pontos de dois agentes e dos dois lados cadastrados no mesmo mapa:
 escolher um agente deixa só os dele; escolher uma habilidade recorta dentro
 do agente; "ataque" esconde os de defesa; sem agente, nenhuma util aparece e
-as posições ficam. É o item 4 da verificação da especificação.
+as posições ficam; clicar num canto deixa só o que sai dali ou cai ali. É o
+item 4 da verificação da especificação.
 
-- [ ] **Passo 8: Conferir os casos ruins**
+- [ ] **Passo 9: Conferir os casos ruins**
 
 Com a aba de rede do navegador bloqueando `valorant-api.com`, a página diz que
 não carregou em vez de ficar em branco (item 1 do Review Focus). Num mapa com
 `callouts` nulo, o resto da página funciona (item 5).
 
-- [ ] **Passo 9: Checkpoint** — `npm test` verde, callouts no lugar nos três mapas, filtros recortando, página usável no celular.
+- [ ] **Passo 10: Checkpoint** — `npm test` verde, callouts no lugar nos três mapas, filtros recortando, página usável no celular.
 
 ---
 
@@ -333,7 +344,8 @@ contêiner — a mesma unidade que o servidor guarda.
 - [ ] **Passo 3: O formulário e a lista**
 
 Agente (lista da API), habilidade (as do agente escolhido), lado, título,
-texto, imagem pelo gerenciador de mídia, vídeo, e a caixa "conferido". A lista
+texto, até três imagens pelo gerenciador de mídia (em ordem: onde ficar, onde
+mirar, resultado), vídeo, e a caixa "conferido". A lista
 abaixo edita e apaga. Erro vindo da rota aparece com a mensagem do servidor,
 como o resto do painel já faz.
 

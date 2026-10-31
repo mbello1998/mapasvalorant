@@ -19,6 +19,7 @@ export const CONTEUDO_RESERVA = {
   },
   nav: [
     { rotulo: "Estande", href: "#estande" },
+    { rotulo: "Sala de Mapas", href: "mapas.html" },
     { rotulo: "Ao vivo", href: "#aovivo" },
     { rotulo: "Lançamentos", href: "#lancamentos" },
     { rotulo: "Agentes", href: "#agentes" },
@@ -214,6 +215,12 @@ export const carregarAgentes = () =>
   catalogo("/agents?language=pt-BR&isPlayableCharacter=true");
 
 export const carregarMapas = () => catalogo("/maps?language=pt-BR");
+
+/** Todos os pixels e posições cadastrados pelo painel; a página filtra por mapa no cliente. */
+export async function carregarTatica() {
+  const r = await pegar("/api/tatica");
+  return Array.isArray(r?.pontos) ? r.pontos : [];
+}
 
 /** Os gradientes da API vêm como RRGGBBAA sem o "#". */
 export function gradienteAgente(cores) {

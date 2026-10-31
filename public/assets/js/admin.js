@@ -2,6 +2,9 @@
 // imagens em /api/media. Nada aqui tem lógica de apresentação do site: o painel
 // só edita o JSON que o site consome.
 
+import { carregarMapas, carregarAgentes, carregarTatica } from "./api.js";
+import { montarMinimapa, pontosDoMapa, rotuloDoPonto } from "./minimapa.js";
+
 const $ = (id) => document.getElementById(id);
 const CHAVE_SESSAO = "estande.chave";
 
@@ -145,10 +148,18 @@ function entradaCor({ rotulo, rota, dica }) {
   return rotulado(rotulo, elemento("div", { class: "cor" }, [seletor, texto]), dica);
 }
 
-/** Campo de imagem: URL colada, envio direto ou escolha da biblioteca. */
-function entradaImagem({ rotulo, rota, obj, chave, dica }) {
+/**
+ * Campo de imagem: URL colada, envio direto ou escolha da biblioteca.
+ *
+ * `local` é para quem guarda o valor fora do conteúdo do site (o editor de
+ * pontos de mapa grava na própria rota). Sem ele, mexer no campo acenderia o
+ * "Alterações não publicadas" e o aviso de sair da página, sem nada a publicar.
+ */
+function entradaImagem({ rotulo, rota, obj, chave, dica, local = false }) {
   const ler = () => (obj ? obj[chave] : obter(rota)) ?? "";
-  const gravar = (v) => { if (obj) { obj[chave] = v; marcarSujo(); } else definir(rota, v); };
+  const gravar = (v) => {
+    if (obj) { obj[chave] = v; if (!local) marcarSujo(); } else definir(rota, v);
+  };
 
   const previa = elemento("div", { class: "img-campo__previa" });
   const input = elemento("input", { type: "text", value: ler(), placeholder: "/api/media/… ou https://…" });
@@ -921,6 +932,23 @@ const ABAS = [
       ]),
     ],
   },
+  {
+    id: "tatica",
+    rotulo: "Tática",
+    montar: () => [
+      bloco("Marcar no minimapa", "Escolha o mapa e clique no minimapa. Um pixel leva dois cliques: onde a pessoa fica e onde a util cai. Uma posição leva um. Clicar num ponto já cadastrado abre ele para editar.", [
+        elemento("div", { id: "tatMapa" }, [
+          elemento("p", { class: "lista__vazia", texto: "Carregando os mapas…" }),
+        ]),
+      ]),
+      bloco("Dados do ponto", "O ponto só aparece na Sala de Mapas depois de salvo. Enquanto não estiver marcado como conferido, a página pública avisa que ele não foi testado.", [
+        elemento("div", { id: "tatForm" }),
+      ]),
+      bloco("Pontos deste mapa", null, [
+        elemento("div", { class: "lista", id: "tatLista" }),
+      ]),
+    ],
+  },
   { id: "midia", rotulo: "Mídia", montar: painelMidia },
 ];
 
@@ -1196,6 +1224,452 @@ function mostrarNiveis() {
   });
 }
 
+/* ================================================= tática (sala de mapas) === */
+
+/**
+ * O editor de pontos da Sala de Mapas.
+ *
+ * Ao contrário das outras abas, esta não edita o JSON de `/api/content`: cada
+ * ponto é gravado na hora por `/api/tatica`, um de cada vez. Por isso nada aqui
+ * chama `marcarSujo()` — não há nada para "Publicar alterações" — e o estado
+ * vive num objeto à parte em vez de em `estado.conteudo`.
+ */
+const tat = {
+  mapas: [],
+  agentes: [],
+  pontos: [],
+  mapa: null,       // uuid do mapa aberto
+  editando: null,   // id do ponto em edição; null quando é um ponto novo
+  tipo: "pixel",    // "pixel" | "posicao"
+  de: null,         // { x, y }, fração do minimapa
+  para: null,       // { x, y } ou null
+  form: null,
+  mini: null,       // { atualizar } devolvido por montarMinimapa
+  refs: {},
+};
+
+const formVazio = () => ({
+  agente: "", habilidade: "", lado: "ataque",
+  titulo: "", texto: "", imagens: ["", "", ""], video: "", fonte: "", conferido: false,
+});
+
+function limparRascunho() {
+  tat.editando = null;
+  tat.tipo = "pixel";
+  tat.de = null;
+  tat.para = null;
+  tat.form = formVazio();
+}
+
+const ROTULO_IMAGEM = ["Imagem 1: onde ficar", "Imagem 2: onde mirar", "Imagem 3: resultado"];
+
+/** Fração com quatro casas: sobra precisão de sobra num minimapa e o JSON fica enxuto. */
+const fracao = (v) => Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000;
+
+function dicaDeMarcacao() {
+  if (tat.tipo === "posicao") {
+    return tat.de
+      ? "Posição marcada. Um novo clique move o ponto."
+      : "Clique no minimapa onde a pessoa fica.";
+  }
+  if (!tat.de) return "Clique no minimapa onde a pessoa fica (1 de 2).";
+  if (!tat.para) return "Agora clique onde a util cai (2 de 2).";
+  return "Pixel marcado. Um novo clique recomeça a marcação.";
+}
+
+/** O que o minimapa mostra: os pontos do mapa, menos o editado, mais o rascunho. */
+function atualizarMapaDeTatica() {
+  if (!tat.mini) return;
+  const lista = pontosDoMapa(tat.pontos, tat.mapa).filter((p) => p.id !== tat.editando);
+  if (tat.de) {
+    const f = tat.form;
+    lista.push({
+      id: "rascunho", mapa: tat.mapa,
+      agente: f.agente || null, habilidade: f.habilidade || null,
+      lado: f.lado, tipo: tat.tipo,
+      de: tat.de, para: tat.tipo === "pixel" ? tat.para : null,
+      titulo: f.titulo || "Ponto em edição",
+    });
+  }
+  tat.mini.atualizar(lista, { selecionado: "rascunho" });
+}
+
+function marcarNoMapa({ x, y }) {
+  const c = { x: fracao(x), y: fracao(y) };
+  if (tat.tipo === "posicao") tat.de = c;
+  // Pixel: o primeiro clique é o `de`, o segundo é o `para`. Com os dois já
+  // marcados, um clique novo recomeça em vez de mexer só num deles — senão não
+  // haveria como saber qual das duas pontas a pessoa quis mover.
+  else if (!tat.de || tat.para) { tat.de = c; tat.para = null; }
+  else tat.para = c;
+  pintarMarcacao();
+}
+
+function pintarMarcacao() {
+  const { botoesTipo, dica } = tat.refs;
+  for (const [tipo, botao] of Object.entries(botoesTipo)) {
+    botao.setAttribute("aria-pressed", String(tipo === tat.tipo));
+  }
+  dica.textContent = dicaDeMarcacao();
+  // Pixel com a origem marcada e o destino pendente: o próximo clique tem de
+  // virar `para`, mesmo que caia em cima de outro marcador. O CSS desliga o
+  // clique dos marcadores enquanto este atributo estiver no minimapa. Calculado
+  // aqui, que roda em toda mudança do rascunho (marcar, trocar tipo, refazer,
+  // salvar, limpar, abrir outro ponto), para nunca ficar preso ligado.
+  const aguardandoDestino = tat.tipo === "pixel" && Boolean(tat.de) && !tat.para;
+  tat.refs.minimapa.dataset.marcando = aguardandoDestino ? "destino" : "";
+  atualizarMapaDeTatica();
+}
+
+function abrirPontoParaEditar(p) {
+  if (p.id === "rascunho" || p.id === tat.editando) return;
+  const emAndamento = tat.de || tat.form.titulo.trim();
+  if (emAndamento && !confirm("Descartar o que está sendo marcado e abrir este ponto?")) return;
+
+  tat.editando = p.id;
+  tat.tipo = p.tipo;
+  tat.de = { ...p.de };
+  tat.para = p.para ? { ...p.para } : null;
+  tat.form = {
+    agente: p.agente ?? "", habilidade: p.habilidade ?? "", lado: p.lado,
+    titulo: p.titulo ?? "", texto: p.texto ?? "",
+    imagens: [0, 1, 2].map((i) => p.imagens?.[i] ?? ""),
+    video: p.video ?? "", fonte: p.fonte ?? "", conferido: p.conferido === true,
+  };
+  pintarEditorDeTatica();
+  tat.refs.form?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function desenharMinimapaDeTatica() {
+  const mapa = tat.mapas.find((m) => m.uuid === tat.mapa);
+  tat.mini = montarMinimapa(tat.refs.minimapa, {
+    mapa, pontos: [], agentes: tat.agentes,
+    aoEscolher: abrirPontoParaEditar,
+    aoClicarNoMapa: marcarNoMapa,
+  });
+}
+
+/** Opções de habilidade do agente escolhido. Sem agente, não há o que escolher. */
+function preencherHabilidades(select) {
+  const f = tat.form;
+  select.replaceChildren(elemento("option", { value: "", texto: f.agente ? "Nenhuma" : "Escolha um agente antes" }));
+  const agente = tat.agentes.find((a) => a.uuid === f.agente);
+  for (const h of agente?.abilities ?? []) {
+    if (!h.displayName) continue;
+    select.append(elemento("option", { value: h.slot, texto: h.displayName }));
+  }
+  // Um ponto antigo pode apontar para uma habilidade que a Riot tirou do
+  // catálogo. Sem esta opção o select cairia em "Nenhuma" e salvar apagaria o
+  // dado sem a pessoa ter pedido.
+  if (f.habilidade && ![...select.options].some((o) => o.value === f.habilidade)) {
+    select.append(elemento("option", { value: f.habilidade, texto: `${f.habilidade} (fora do catálogo)` }));
+  }
+  select.value = f.habilidade;
+  select.disabled = !f.agente;
+}
+
+function pintarFormDeTatica() {
+  const alvo = tat.refs.form;
+  const f = tat.form;
+  alvo.replaceChildren();
+
+  const agentes = elemento("select");
+  agentes.append(elemento("option", { value: "", texto: "Nenhum (posição que vale para todos)" }));
+  [...tat.agentes]
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, "pt-BR"))
+    .forEach((a) => agentes.append(elemento("option", { value: a.uuid, texto: a.displayName })));
+  if (f.agente && !tat.agentes.some((a) => a.uuid === f.agente)) {
+    agentes.append(elemento("option", { value: f.agente, texto: "Agente fora do catálogo" }));
+  }
+  agentes.value = f.agente;
+
+  const habilidades = elemento("select");
+  preencherHabilidades(habilidades);
+
+  agentes.addEventListener("change", () => {
+    f.agente = agentes.value;
+    f.habilidade = "";
+    preencherHabilidades(habilidades);
+    atualizarMapaDeTatica();
+  });
+  habilidades.addEventListener("change", () => {
+    f.habilidade = habilidades.value;
+    atualizarMapaDeTatica();
+  });
+
+  const lado = elemento("select");
+  lado.append(
+    elemento("option", { value: "ataque", texto: "Ataque" }),
+    elemento("option", { value: "defesa", texto: "Defesa" }),
+  );
+  lado.value = f.lado;
+  lado.addEventListener("change", () => { f.lado = lado.value; atualizarMapaDeTatica(); });
+
+  const titulo = elemento("input", { type: "text", value: f.titulo, maxlength: 80 });
+  titulo.addEventListener("input", () => { f.titulo = titulo.value; });
+
+  const texto = elemento("textarea", { rows: 4, maxlength: 600 });
+  texto.value = f.texto;
+  texto.addEventListener("input", () => { f.texto = texto.value; });
+
+  const video = elemento("input", { type: "url", value: f.video, placeholder: "https://www.youtube.com/watch?v=…" });
+  video.addEventListener("input", () => { f.video = video.value; });
+
+  const fonte = elemento("input", { type: "url", value: f.fonte, maxlength: 200, placeholder: "https://…" });
+  fonte.addEventListener("input", () => { f.fonte = fonte.value; });
+
+  const conferido = elemento("input", { type: "checkbox" });
+  conferido.checked = f.conferido;
+  conferido.addEventListener("change", () => { f.conferido = conferido.checked; });
+
+  const salvar = elemento("button", {
+    class: "btn btn--forte chf", type: "button",
+    texto: tat.editando ? "Salvar alterações" : "Salvar ponto",
+    onclick: (ev) => salvarPontoDeTatica(ev.currentTarget),
+  });
+
+  alvo.append(
+    elemento("p", { class: "bloco__nota", texto: tat.editando ? `Editando: ${f.titulo || "(sem título)"}` : "Ponto novo." }),
+    elemento("div", { class: "dupla" }, [rotulado("Agente", agentes), rotulado("Habilidade", habilidades)]),
+    rotulado("Lado", lado),
+    elemento("div", { class: "dupla" }, [
+      rotulado("Vídeo (opcional)", video, "Só link do YouTube."),
+      // A fonte é crédito, não conteúdo: a página mostra só o domínio como link.
+      rotulado("Fonte (opcional)", fonte, "Link https de onde você viu o lineup. A página mostra só o domínio."),
+    ]),
+    rotulado("Título", titulo, "Até 80 caracteres."),
+    rotulado("Texto", texto, "Até 600 caracteres. Sem marcação."),
+    // As imagens guardam a ordem: a página pública mostra nesta sequência.
+    ...ROTULO_IMAGEM.map((rotulo, i) =>
+      entradaImagem({ rotulo, obj: f.imagens, chave: i, local: true })),
+    elemento("label", { class: "caixa-sim" }, [
+      conferido,
+      elemento("span", { texto: "Conferido: testei este ponto no jogo" }),
+    ]),
+    elemento("div", { class: "item__acoes" }, [
+      salvar,
+      elemento("button", {
+        class: "btn chf", type: "button",
+        texto: tat.editando ? "Cancelar edição" : "Limpar tudo",
+        onclick: () => { limparRascunho(); pintarEditorDeTatica(); },
+      }),
+    ]),
+  );
+}
+
+async function salvarPontoDeTatica(botao) {
+  const f = tat.form;
+  if (!tat.de) {
+    avisar("Clique no minimapa para marcar onde a pessoa fica.", "erro");
+    return;
+  }
+
+  const editando = tat.editando;
+  const corpo = {
+    mapa: tat.mapa,
+    agente: f.agente || null,
+    habilidade: f.habilidade || null,
+    lado: f.lado,
+    tipo: tat.tipo,
+    de: tat.de,
+    para: tat.tipo === "pixel" ? tat.para : null,
+    titulo: f.titulo,
+    texto: f.texto,
+    imagens: f.imagens.map((i) => i.trim()).filter(Boolean),
+    video: f.video.trim() || null,
+    fonte: f.fonte.trim() || null,
+    conferido: f.conferido,
+  };
+
+  botao.disabled = true;
+  try {
+    // O servidor valida tudo e devolve a mensagem em português; ela vai direto
+    // para a barra, sem tradução nem texto nosso por cima.
+    const salvo = await api(editando ? `/api/tatica?id=${encodeURIComponent(editando)}` : "/api/tatica", {
+      method: editando ? "PATCH" : "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(corpo),
+    });
+    const i = tat.pontos.findIndex((p) => p.id === salvo.id);
+    if (i >= 0) tat.pontos[i] = salvo; else tat.pontos.push(salvo);
+    avisar(editando ? "Ponto atualizado." : "Ponto salvo.", "ok");
+    limparRascunho();
+    pintarEditorDeTatica();
+  } catch (e) {
+    avisar(e.message, "erro");
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+function pintarListaDeTatica() {
+  const alvo = tat.refs.lista;
+  alvo.replaceChildren();
+  const pontos = pontosDoMapa(tat.pontos, tat.mapa);
+
+  if (!pontos.length) {
+    alvo.append(elemento("p", { class: "lista__vazia", texto: "Nenhum ponto neste mapa ainda. Clique no minimapa para começar." }));
+    return;
+  }
+
+  pontos.forEach((p, i) => {
+    const alternar = elemento("button", {
+      class: "btn btn--mini chf", type: "button",
+      texto: p.conferido ? "Desmarcar conferido" : "Marcar como conferido",
+      onclick: async (ev) => {
+        const botao = ev.currentTarget;
+        botao.disabled = true;
+        try {
+          const salvo = await api(`/api/tatica?id=${encodeURIComponent(p.id)}`, {
+            method: "PATCH",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ conferido: !p.conferido }),
+          });
+          const j = tat.pontos.findIndex((x) => x.id === salvo.id);
+          if (j >= 0) tat.pontos[j] = salvo;
+          // Se o ponto está aberto no formulário, a caixa precisa acompanhar,
+          // senão o próximo "Salvar" desfaria o que acabou de ser feito.
+          if (tat.editando === salvo.id) tat.form.conferido = salvo.conferido === true;
+          avisar(salvo.conferido ? "Marcado como conferido." : "Voltou a não conferido.", "ok");
+          pintarEditorDeTatica();
+        } catch (e) {
+          botao.disabled = false;
+          avisar(e.message, "erro");
+        }
+      },
+    });
+
+    alvo.append(elemento("div", { class: "item chf" }, [
+      elemento("div", { class: "item__topo" }, [
+        elemento("span", { class: "item__ordem", texto: String(i + 1).padStart(2, "0") }),
+        elemento("span", { class: "item__titulo", texto: rotuloDoPonto(p, tat.agentes), title: rotuloDoPonto(p, tat.agentes) }),
+        elemento("span", {
+          class: `item__meta tat-selo${p.conferido ? " tat-selo--ok" : ""}`,
+          texto: p.conferido ? "conferido" : "não conferido",
+        }),
+      ]),
+      elemento("div", { class: "item__acoes" }, [
+        elemento("button", {
+          class: "btn btn--mini chf", type: "button", texto: "Editar",
+          onclick: () => abrirPontoParaEditar(p),
+        }),
+        alternar,
+        elemento("button", {
+          class: "btn btn--mini btn--perigo chf", type: "button", texto: "Apagar",
+          onclick: async (ev) => {
+            if (!confirm(`Apagar "${p.titulo}"? Ele some da Sala de Mapas e não dá para desfazer.`)) return;
+            const botao = ev.currentTarget;
+            botao.disabled = true;
+            try {
+              await api(`/api/tatica?id=${encodeURIComponent(p.id)}`, { method: "DELETE" });
+              tat.pontos = tat.pontos.filter((x) => x.id !== p.id);
+              if (tat.editando === p.id) limparRascunho();
+              avisar("Ponto apagado.", "ok");
+              pintarEditorDeTatica();
+            } catch (e) {
+              botao.disabled = false;
+              avisar(e.message, "erro");
+            }
+          },
+        }),
+      ]),
+    ]));
+  });
+}
+
+function pintarEditorDeTatica() {
+  pintarMarcacao();
+  pintarFormDeTatica();
+  pintarListaDeTatica();
+}
+
+/** Monta o bloco do minimapa depois que o catálogo chegou. */
+function montarEditorDeTatica() {
+  const alvo = $("tatMapa");
+
+  const seletor = elemento("select", { "aria-label": "Mapa" });
+  for (const m of tat.mapas) seletor.append(elemento("option", { value: m.uuid, texto: m.displayName }));
+  seletor.value = tat.mapa;
+  seletor.addEventListener("change", () => {
+    // Coordenada de um mapa não vale em outro, então o rascunho não atravessa.
+    if ((tat.de || tat.form.titulo.trim()) && !confirm("Trocar de mapa descarta o que está sendo marcado. Continuar?")) {
+      seletor.value = tat.mapa;
+      return;
+    }
+    tat.mapa = seletor.value;
+    limparRascunho();
+    desenharMinimapaDeTatica();
+    pintarEditorDeTatica();
+  });
+
+  const botoesTipo = {};
+  for (const [tipo, rotulo] of [["pixel", "Pixel"], ["posicao", "Posição"]]) {
+    botoesTipo[tipo] = elemento("button", {
+      class: "btn chf", type: "button", texto: rotulo, "aria-pressed": "false",
+      onclick: () => {
+        tat.tipo = tipo;
+        // Posição não lança nada; o `para` ficaria escondido e iria no envio.
+        if (tipo === "posicao") tat.para = null;
+        pintarMarcacao();
+      },
+    });
+  }
+
+  const dica = elemento("p", { class: "bloco__nota", "aria-live": "polite" });
+  const minimapa = elemento("div", { class: "tat-minimapa" });
+
+  alvo.replaceChildren(
+    elemento("div", { class: "dupla" }, [rotulado("Mapa", seletor)]),
+    elemento("div", { class: "tat-barra" }, [
+      elemento("span", { class: "tat-barra__rotulo", texto: "O que marcar" }),
+      botoesTipo.pixel,
+      botoesTipo.posicao,
+      elemento("button", {
+        class: "btn btn--mini chf", type: "button", texto: "Refazer marcação",
+        onclick: () => { tat.de = null; tat.para = null; pintarMarcacao(); },
+      }),
+    ]),
+    dica,
+    minimapa,
+  );
+
+  Object.assign(tat.refs, {
+    botoesTipo, dica, minimapa,
+    form: $("tatForm"), lista: $("tatLista"),
+  });
+  desenharMinimapaDeTatica();
+  pintarEditorDeTatica();
+}
+
+/**
+ * Entrada da aba. Busca o catálogo e os pontos de novo a cada visita: a lista
+ * pode ter mudado por outro lado (outra aba do navegador, outra pessoa).
+ */
+function mostrarTatica() {
+  const alvo = $("tatMapa");
+  if (!alvo) return;
+
+  Promise.all([carregarMapas(), carregarAgentes(), carregarTatica()]).then(([mapas, agentes, pontos]) => {
+    tat.mapas = mapas
+      // Sem `tacticalDescription` são campo de treino e modos especiais, que
+      // não têm partida; a página pública esconde os mesmos.
+      .filter((m) => m.tacticalDescription)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, "pt-BR"));
+    tat.agentes = agentes;
+    tat.pontos = pontos;
+
+    if (!tat.mapas.length) {
+      alvo.replaceChildren(elemento("p", { class: "lista__vazia", texto: "A API da Riot não devolveu nenhum mapa jogável." }));
+      return;
+    }
+    if (!tat.mapas.some((m) => m.uuid === tat.mapa)) tat.mapa = tat.mapas[0].uuid;
+    limparRascunho();
+    montarEditorDeTatica();
+  }).catch((e) => {
+    alvo.replaceChildren(elemento("p", { class: "lista__vazia", texto: `Não deu para carregar mapas e pontos: ${e.message}` }));
+  });
+}
+
 /** Diagnóstico da coleta: quando rodou, quantas vieram, e se quebrou. */
 function mostrarEstadoNoticias() {
   const alvo = $("estadoNoticias");
@@ -1250,6 +1724,7 @@ function pintarAbaAtual() {
   if (aba.id === "noticias") mostrarEstadoNoticias();
   if (aba.id === "rankingAba") mostrarRanking();
   if (aba.id === "niveis") mostrarNiveis();
+  if (aba.id === "tatica") mostrarTatica();
 }
 
 function montarAbas() {
