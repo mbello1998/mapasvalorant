@@ -1656,6 +1656,11 @@ a.feed__item:hover::before { background: var(--sinal); }
   transform: translate(-50%, -50%);
   border: 2px dashed var(--luz); border-radius: 50%;
 }
+/* Saída e chegada podem estar no mapa ao mesmo tempo, então precisam se
+   distinguir sem depender da cor: traço contínuo contra tracejado, e círculo
+   contra quadrado. */
+.minimapa__lugar--origem { border-style: solid; }
+.minimapa__lugar--destino { border-style: solid; border-radius: 12%; }
 
 .minimapa__barra { display: flex; flex-wrap: wrap; gap: var(--e-2); margin-top: var(--e-3); }
 

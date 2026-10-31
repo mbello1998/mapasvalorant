@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { paraMinimapa, calloutsDoMapa, pontosDoMapa, filtrarPorLugar, filtrarPontos, rotuloDoPonto } from "../public/assets/js/minimapa.js";
+import { paraMinimapa, calloutsDoMapa, pontosDoMapa, filtrarPorLugar, filtrarPorTrajeto, filtrarPontos, rotuloDoPonto } from "../public/assets/js/minimapa.js";
 
 const ASCENT = { xMultiplier: 0.00007, yMultiplier: -0.00007, xScalarToAdd: 0.813895, yScalarToAdd: 0.573242 };
 
@@ -121,4 +121,38 @@ test("a habilidade recorta o agente mas a posição sem agente continua", () => 
 test("o lado também recorta as posições sem agente", () => {
   const pontos = [{ id: "g", tipo: "posicao", agente: null, habilidade: null, lado: "defesa" }];
   assert.deepEqual(filtrarPontos(pontos, { agente: "sova", lado: "ataque" }), []);
+});
+
+test("filtrarPorTrajeto recorta pela saída, pela chegada, e pelos dois juntos", () => {
+  const a = { id: "a", de: { x: 0.2, y: 0.2 }, para: { x: 0.8, y: 0.8 } };
+  const b = { id: "b", de: { x: 0.2, y: 0.2 }, para: { x: 0.2, y: 0.8 } };
+  const c = { id: "c", de: { x: 0.8, y: 0.2 }, para: { x: 0.8, y: 0.8 } };
+
+  const saida = { x: 0.21, y: 0.21 };
+  const chegada = { x: 0.79, y: 0.79 };
+
+  assert.deepEqual(filtrarPorTrajeto([a, b, c], { origem: saida }).map((p) => p.id), ["a", "b"]);
+  assert.deepEqual(filtrarPorTrajeto([a, b, c], { destino: chegada }).map((p) => p.id), ["a", "c"]);
+  // Os dois juntos são E, não OU: só o que sai dali E chega lá.
+  assert.deepEqual(filtrarPorTrajeto([a, b, c], { origem: saida, destino: chegada }).map((p) => p.id), ["a"]);
+});
+
+test("filtrarPorTrajeto sem filtro nenhum devolve tudo", () => {
+  const pontos = [{ id: "a", de: { x: 0.2, y: 0.2 }, para: null }];
+  assert.deepEqual(filtrarPorTrajeto(pontos, {}).map((p) => p.id), ["a"]);
+  assert.deepEqual(filtrarPorTrajeto(pontos).map((p) => p.id), ["a"]);
+});
+
+test("posição não tem chegada, então some assim que se filtra por destino", () => {
+  // Uma posição é onde ficar: não lança nada, não chega em lugar nenhum. Pedir
+  // chegada é pedir lineup, e a posição não é um.
+  const posicao = { id: "pos", de: { x: 0.5, y: 0.5 }, para: null };
+  assert.deepEqual(filtrarPorTrajeto([posicao], { origem: { x: 0.5, y: 0.5 } }).map((p) => p.id), ["pos"]);
+  assert.deepEqual(filtrarPorTrajeto([posicao], { destino: { x: 0.5, y: 0.5 } }), []);
+});
+
+test("filtrarPorTrajeto respeita o raio dado", () => {
+  const p = { id: "p", de: { x: 0.5, y: 0.5 }, para: { x: 0.9, y: 0.9 } };
+  assert.equal(filtrarPorTrajeto([p], { origem: { x: 0.58, y: 0.5 } }).length, 0);
+  assert.equal(filtrarPorTrajeto([p], { origem: { x: 0.58, y: 0.5 } }, 0.1).length, 1);
 });

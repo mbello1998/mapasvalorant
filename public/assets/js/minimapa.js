@@ -81,6 +81,27 @@ export function filtrarPorLugar(pontos, { x, y }, raio = 0.06) {
   return (pontos ?? []).filter((p) => perto(p.de) || perto(p.para));
 }
 
+/**
+ * Recorta pelas duas pontas do trajeto: `origem` casa com o `de` do ponto (de
+ * onde se joga) e `destino` com o `para` (onde a util cai).
+ *
+ * Os dois juntos são E, não OU — a pergunta é "o que sai daqui e cai lá",
+ * que é a busca que leva a um lineup; OU devolveria meio mapa. Cada um
+ * sozinho vale como filtro de uma ponta só. Nenhum dos dois devolve tudo.
+ *
+ * Posição não tem `para`: pedir destino a exclui, e é o certo, porque posição
+ * é onde ficar, não algo que viaja. Quem quer "o que acontece neste canto",
+ * sem distinguir ponta, usa `filtrarPorLugar`.
+ */
+export function filtrarPorTrajeto(pontos, { origem = null, destino = null } = {}, raio = 0.06) {
+  const perto = (c, alvo) => c != null && Math.hypot(c.x - alvo.x, c.y - alvo.y) <= raio;
+  return (pontos ?? []).filter((p) => {
+    if (origem && !perto(p.de, origem)) return false;
+    if (destino && !perto(p.para, destino)) return false;
+    return true;
+  });
+}
+
 /** O agente da lista da API a que o ponto se refere, ou null. */
 export function agenteDoPonto(ponto, agentes) {
   if (!ponto.agente) return null;
@@ -188,7 +209,7 @@ export function montarMinimapa(alvo, { mapa, pontos = [], agentes = [], aoEscolh
     });
   });
 
-  function atualizar(lista, { selecionado = null, lugar = null } = {}) {
+  function atualizar(lista, { selecionado = null, lugar = null, origem = null, destino = null } = {}) {
     linhas.replaceChildren();
     camadaPontos.replaceChildren();
 
@@ -229,10 +250,14 @@ export function montarMinimapa(alvo, { mapa, pontos = [], agentes = [], aoEscolh
       camadaPontos.append(botao);
     }
 
-    if (lugar) {
+    // As marcas de filtro, por último, para ficarem por cima dos marcadores.
+    // Cada uma tem a sua classe: saída e chegada precisam ser distinguíveis
+    // entre si quando as duas estão no mapa ao mesmo tempo.
+    for (const [onde, tipo] of [[lugar, "qualquer"], [origem, "origem"], [destino, "destino"]]) {
+      if (!onde) continue;
       camadaPontos.append(elemento("span", {
-        class: "minimapa__lugar", "aria-hidden": "true",
-        estilo: `left:${emPorcento(lugar.x)};top:${emPorcento(lugar.y)}`,
+        class: `minimapa__lugar minimapa__lugar--${tipo}`, "aria-hidden": "true",
+        estilo: `left:${emPorcento(onde.x)};top:${emPorcento(onde.y)}`,
       }));
     }
   }

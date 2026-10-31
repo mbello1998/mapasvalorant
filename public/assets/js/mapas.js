@@ -2,7 +2,7 @@ import { carregarConteudo, carregarMapas, carregarAgentes, carregarTatica } from
 import { $, elemento, vestirPagina } from "./chrome.js";
 import { carregarConta, montarBotaoDeConta } from "./conta.js";
 import {
-  montarMinimapa, pontosDoMapa, filtrarPontos, filtrarPorLugar,
+  montarMinimapa, pontosDoMapa, filtrarPontos, filtrarPorLugar, filtrarPorTrajeto,
   agenteDoPonto, habilidadeDoPonto,
 } from "./minimapa.js";
 
@@ -26,7 +26,13 @@ const estado = {
   agente: null,        // uuid
   habilidade: null,    // slot
   lado: null,          // "ataque" | "defesa"
-  lugar: null,         // { x, y } do último clique no minimapa
+  // O clique no minimapa filtra por lugar, e o modo diz qual ponta ele marca.
+  // "ambos" é o modo de descobrir ("o que acontece neste canto"); "origem" e
+  // "destino" são o de procurar um lineup pelas pontas, e podem valer juntos.
+  modoLugar: "ambos",  // "ambos" | "origem" | "destino"
+  lugar: null,         // { x, y } marcado no modo "ambos"
+  origem: null,        // { x, y } de onde se joga
+  destino: null,       // { x, y } onde a util cai
   selecionado: null,   // id do ponto aberto no painel
   avisos: [],          // o que falhou ao carregar mas não impede a página
 };
@@ -89,7 +95,19 @@ function pontosVisiveis() {
     agente: estado.agente, habilidade: estado.habilidade, lado: estado.lado,
   });
   if (estado.lugar) lista = filtrarPorLugar(lista, estado.lugar);
+  if (estado.origem || estado.destino) {
+    lista = filtrarPorTrajeto(lista, { origem: estado.origem, destino: estado.destino });
+  }
   return lista;
+}
+
+/** Algum filtro de lugar está marcado? */
+const temLugar = () => Boolean(estado.lugar || estado.origem || estado.destino);
+
+function limparLugares() {
+  estado.lugar = null;
+  estado.origem = null;
+  estado.destino = null;
 }
 
 function metaDoPonto(p) {
@@ -238,6 +256,42 @@ function pintarFiltroLado() {
   );
 }
 
+const MODO_LUGAR = {
+  ambos: "Em qualquer ponta",
+  origem: "De onde sai",
+  destino: "Onde cai",
+};
+
+/**
+ * O clique no minimapa como filtro, nos moldes do Start/End dos sites de
+ * lineup: escolhe-se a ponta e clica-se no mapa.
+ *
+ * Trocar de modo não apaga o que já foi marcado nos outros, de propósito:
+ * marcar a saída e depois a chegada é a sequência natural de quem procura um
+ * lineup, e limpar a cada troca obrigaria a remarcar.
+ */
+function pintarFiltroLugar() {
+  $("filtroModoLugar").replaceChildren(
+    ...Object.entries(MODO_LUGAR).map(([valor, rotulo]) =>
+      pilula(rotulo, estado.modoLugar === valor, `modoLugar:${valor}`, () => {
+        estado.modoLugar = valor;
+        renderizar();
+      })),
+  );
+
+  const marcados = [
+    estado.lugar && "uma ponta qualquer",
+    estado.origem && "a saída",
+    estado.destino && "a chegada",
+  ].filter(Boolean);
+
+  $("dicaLugar").textContent = marcados.length
+    ? `Marcado: ${marcados.join(" e ")}. Clique de novo no mapa para mudar.`
+    : `Clique no minimapa para filtrar por ${MODO_LUGAR[estado.modoLugar].toLowerCase()}.`;
+
+  $("limparLugar").hidden = !temLugar();
+}
+
 /** Só agentes que têm ponto no mapa: os outros levariam a uma tela vazia. */
 function agentesDoMapa() {
   const doMapa = pontosDoMapa(estado.pontos, estado.mapa.uuid);
@@ -320,9 +374,14 @@ function desenhar() {
   pintarFiltroAgente();
   pintarFiltroHabilidade();
   pintarFiltroLado();
-  $("blocoLugar").hidden = !estado.lugar;
+  pintarFiltroLugar();
 
-  minimapa?.atualizar(visiveis, { selecionado: estado.selecionado, lugar: estado.lugar });
+  minimapa?.atualizar(visiveis, {
+    selecionado: estado.selecionado,
+    lugar: estado.lugar,
+    origem: estado.origem,
+    destino: estado.destino,
+  });
   pintarLista(visiveis);
   pintarPainel(visiveis.find((p) => p.id === estado.selecionado) ?? null);
 
@@ -360,7 +419,7 @@ function escolherMapa(uuid) {
   // Filtro de um mapa não vale no outro: o lugar clicado é outra coisa, e o
   // agente pode nem ter ponto lá.
   if (estado.mapa && estado.mapa.uuid !== mapa.uuid) {
-    estado.lugar = null;
+    limparLugares();
     estado.selecionado = null;
   }
   estado.mapa = mapa;
@@ -374,7 +433,14 @@ function escolherMapa(uuid) {
       pontos: [],
       agentes: estado.agentes,
       aoEscolher: escolherPonto,
-      aoClicarNoMapa: (lugar) => { estado.lugar = lugar; renderizar(); },
+      // O modo decide em qual ponta o clique cai. Cada modo guarda a sua marca,
+      // então dá para marcar a saída e depois a chegada sem perder a primeira.
+      aoClicarNoMapa: (lugar) => {
+        if (estado.modoLugar === "origem") estado.origem = lugar;
+        else if (estado.modoLugar === "destino") estado.destino = lugar;
+        else estado.lugar = lugar;
+        renderizar();
+      },
     });
     desenhar();
   });
@@ -446,10 +512,11 @@ async function iniciar() {
   carregarConta().then(montarBotaoDeConta);
 
   $("limparLugar").addEventListener("click", () => {
-    estado.lugar = null;
+    limparLugares();
     renderizar();
-    // O botão some junto com o filtro; o foco vai para o agente escolhido em vez de cair no <body>.
-    $("filtroAgente").querySelector('[aria-pressed="true"]')?.focus();
+    // O botão se esconde junto com o filtro que ele limpou; o foco vai para o
+    // modo escolhido, ao lado, em vez de cair no <body>.
+    $("filtroModoLugar").querySelector('[aria-pressed="true"]')?.focus();
   });
 
   await carregarDados();

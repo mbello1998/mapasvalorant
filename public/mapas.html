@@ -76,10 +76,11 @@
             <div class="filtros" id="filtroLado" role="group" aria-labelledby="rotLado"></div>
           </div>
 
-          <div class="sala__bloco" id="blocoLugar" hidden>
-            <span class="sala__rotulo">Lugar</span>
-            <p class="sala__lugar">Só o que sai ou cai perto do ponto marcado no mapa.</p>
-            <button class="pilula chf" type="button" id="limparLugar">Limpar lugar</button>
+          <div class="sala__bloco">
+            <span class="sala__rotulo" id="rotLugar">Lugar no mapa</span>
+            <p class="sala__lugar" id="dicaLugar"></p>
+            <div class="filtros" id="filtroModoLugar" role="group" aria-labelledby="rotLugar"></div>
+            <button class="pilula chf" type="button" id="limparLugar" hidden>Limpar o lugar</button>
           </div>
 
           <div class="ponto" id="painelPonto" aria-live="polite">
