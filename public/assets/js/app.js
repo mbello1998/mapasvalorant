@@ -18,7 +18,7 @@ import {
 } from "./mira.js";
 import { carregarRanking, carregarPatentes } from "./api.js";
 import { patentesReais } from "./elo.js";
-import { baterPonto } from "./api.js";
+import { baterPonto, verPresenca } from "./api.js";
 
 const DATA_CURTA = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
 const DATA_HORA = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -139,23 +139,20 @@ function montarAoVivo(dados) {
   const grade = $("aovivoGrade");
   grade.replaceChildren();
 
-  if (!dados) {
-    grade.append(ficha({
-      rotulo: "Servidores da Riot",
-      valor: "Sem resposta",
-      nota: "As fontes ao vivo não responderam. O resto do site continua funcionando.",
-      cor: "sinal",
-    }));
-    return;
-  }
-
   // Presença. Em "real" o número vem do servidor e o rótulo diz o que ele
   // mede; em "fixo" sai o que estiver escrito no painel.
+  //
+  // Esta ficha é montada antes de qualquer outra coisa, e mesmo quando as
+  // fontes da Riot não respondem: a presença é nossa, não depende delas.
+  // O valor sai do último que o servidor mandou (estado.online), e não de um
+  // travessão fixo — senão cada remontagem apagava o número da tela até a
+  // próxima leitura chegar.
   const pr = estado.presenca ?? {};
   const fixo = pr.modo === "fixo";
+  const vivo = estado.online ?? {};
   const fichaOnline = ficha({
     rotulo: fixo ? (pr.rotulo || "Na comunidade") : "Agora no site",
-    valor: fixo ? String(pr.valor ?? "—") : "—",
+    valor: fixo ? String(pr.valor ?? "—") : numeroOuTraco(vivo.online),
     nota: fixo ? (pr.nota || "") : "Abas ativas nos últimos dois minutos.",
     cor: "sinal",
   });
@@ -165,11 +162,21 @@ function montarAoVivo(dados) {
   if (!fixo && pr.mostrarHoje !== false) {
     const fichaHoje = ficha({
       rotulo: "Pessoas hoje",
-      valor: "—",
+      valor: numeroOuTraco(vivo.hoje),
       nota: "Visitantes distintos nas últimas 24 horas.",
     });
     fichaHoje.dataset.hoje = "1";
     grade.append(fichaHoje);
+  }
+
+  if (!dados) {
+    grade.append(ficha({
+      rotulo: "Servidores da Riot",
+      valor: "Sem resposta",
+      nota: "As fontes ao vivo não responderam. O resto do site continua funcionando.",
+      cor: "sinal",
+    }));
+    return;
   }
 
   // Quantas pessoas jogam VALORANT: a Riot não publica isso, nem ao vivo nem
@@ -964,24 +971,45 @@ function acompanharRanking() {
 
 const estado = {};
 
+const numeroOuTraco = (v) => (Number.isFinite(v) ? String(v) : "—");
+
+/** De quanto em quanto tempo o número é relido e o ponto é batido. */
+const LEITURA_MS = 8_000;
+const PONTO_MS = 45_000;
+
 /**
  * Bate ponto enquanto a aba estiver visível. Em aba escondida o navegador
  * segura o timer de qualquer forma, e quem não está olhando não precisa
  * contar como presente.
+ *
+ * São dois ritmos, de propósito. O ponto (POST, que escreve) vai de 45 em 45
+ * segundos, dentro da janela de dois minutos que o servidor conta. A leitura
+ * (GET, que não escreve nada) vai de oito em oito segundos, e é o que faz o
+ * número andar quase ao vivo: quem entra ou sai aparece na tela em poucos
+ * segundos, sem encher o depósito de marcas.
+ *
+ * O último valor lido fica em `estado.online` para que qualquer remontagem da
+ * grade ao vivo já nasça com o número certo, em vez de piscar um travessão.
  */
 function acompanharPresenca() {
   const pintar = (r) => {
     if (!r) return;
+    estado.online = { online: r.online, hoje: r.hoje ?? r.online };
     const agora = document.querySelector('[data-online="1"] .ficha__val');
-    if (agora) agora.textContent = String(r.online);
+    if (agora) agora.textContent = numeroOuTraco(estado.online.online);
     const hoje = document.querySelector('[data-hoje="1"] .ficha__val');
-    if (hoje) hoje.textContent = String(r.hoje ?? r.online);
+    if (hoje) hoje.textContent = numeroOuTraco(estado.online.hoje);
   };
 
   const bater = () => { if (!document.hidden) baterPonto().then(pintar); };
+  const ler = () => { if (!document.hidden) verPresenca().then(pintar); };
 
   bater();
-  setInterval(bater, 50_000);
+  setInterval(bater, PONTO_MS);
+  setInterval(ler, LEITURA_MS);
+  // Quem volta para a aba vê o número de agora, não o de quando saiu: bate o
+  // ponto na hora, porque a marca dele pode ter saído da janela enquanto a
+  // aba estava escondida.
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bater(); });
 }
 

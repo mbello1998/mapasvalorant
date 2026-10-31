@@ -59,8 +59,31 @@ async function contar(l: ReturnType<typeof loja>) {
   return { online: dePerto.size, hoje: doDia.size };
 }
 
+/**
+ * A página relê a contagem de poucos em poucos segundos para o número andar
+ * ao vivo, e cada leitura custa uma listagem do depósito. Guardar o resultado
+ * por alguns segundos na memória da instância corta quase todas essas
+ * listagens sem o número ficar velho de verdade: o atraso máximo é menor do
+ * que o intervalo entre duas leituras da página.
+ *
+ * É memória de instância, não compartilhada — na pior das hipóteses cada
+ * instância lista uma vez por janela, que é o que acontecia o tempo todo.
+ */
+const VALIDADE_MS = 4_000;
+let cache: { em: number; valor: Awaited<ReturnType<typeof contar>> } | null = null;
+
+async function contagemDePerto(l: ReturnType<typeof loja>, fresca: boolean) {
+  if (!fresca && cache && Date.now() - cache.em < VALIDADE_MS) return cache.valor;
+  const valor = await contar(l);
+  cache = { em: Date.now(), valor };
+  return valor;
+}
+
 export default async (req: Request, _context: Context) => {
   const l = loja();
+  // Quem acabou de bater o ponto precisa se ver na conta, então a resposta
+  // do POST é sempre contada na hora.
+  const escreveu = req.method === "POST";
 
   if (req.method === "POST") {
     let corpo: Record<string, unknown>;
@@ -83,7 +106,7 @@ export default async (req: Request, _context: Context) => {
     }
   }
 
-  const contagem = await contar(l);
+  const contagem = await contagemDePerto(l, escreveu);
   return Response.json(
     { ...contagem, janelaMinutos: 2, em: new Date().toISOString() },
     { headers: { "cache-control": "no-store" } },
@@ -93,5 +116,7 @@ export default async (req: Request, _context: Context) => {
 export const config: Config = {
   path: "/api/presenca",
   method: ["GET", "POST"],
-  rateLimit: { action: "rate_limit", aggregateBy: "ip", windowSize: 60, windowLimit: 30 },
+  // A página lê de oito em oito segundos (≈8 pedidos por minuto por aba);
+  // o teto cobre várias abas atrás do mesmo IP sem liberar abuso.
+  rateLimit: { action: "rate_limit", aggregateBy: "ip", windowSize: 60, windowLimit: 90 },
 };

@@ -170,17 +170,31 @@ export async function apelidoLivre(apelido) {
 
 const CHAVE_SESSAO_ABA = "estande.aba.v1";
 
-/** Um id por aba, só para a mesma aba não ser contada duas vezes. */
+/**
+ * Um id por aba, só para a mesma aba não ser contada duas vezes.
+ *
+ * O servidor exige de 6 a 24 caracteres alfanuméricos. `Math.random()` às
+ * vezes devolve um número curto ("0.5"), e aí `toString(36).slice(2)` sai com
+ * um caractere só — por isso o sorteio repete até dar comprimento suficiente,
+ * em vez de mandar um id que seria recusado com 422 e deixar a aba fora da
+ * conta.
+ */
+function sortearId() {
+  let id = "";
+  while (id.length < 12) id += Math.random().toString(36).slice(2);
+  return id.slice(0, 16);
+}
+
 function idDaAba() {
   try {
     let id = sessionStorage.getItem(CHAVE_SESSAO_ABA);
-    if (!id) {
-      id = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 6);
+    if (!/^[A-Za-z0-9]{6,24}$/.test(id || "")) {
+      id = sortearId();
       sessionStorage.setItem(CHAVE_SESSAO_ABA, id);
     }
     return id;
   } catch {
-    return Math.random().toString(36).slice(2, 14);
+    return sortearId();
   }
 }
 
@@ -192,6 +206,19 @@ export async function baterPonto() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id: idDaAba() }),
     });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+/**
+ * Só lê a contagem, sem bater ponto. É o que roda de poucos em poucos
+ * segundos para o número andar ao vivo; escrever a cada leitura não mudaria
+ * nada na conta e só encheria o depósito.
+ */
+export async function verPresenca() {
+  try {
+    const r = await fetch("/api/presenca", { headers: { accept: "application/json" } });
     if (!r.ok) return null;
     return await r.json();
   } catch { return null; }
