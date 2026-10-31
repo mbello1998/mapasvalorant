@@ -215,8 +215,17 @@ function pintarFiltroHabilidade() {
   bloco.hidden = habilidades.length === 0;
   caixa.replaceChildren(
     pilula("Todas", !estado.habilidade, "habilidade:todas", () => { estado.habilidade = null; renderizar(); }),
-    ...habilidades.map((h) =>
-      pilula(h.displayName, estado.habilidade === h.slot, `habilidade:${h.slot}`, () => { estado.habilidade = h.slot; renderizar(); })),
+    ...habilidades.map((h) => {
+      const escolhida = estado.habilidade === h.slot;
+      const clicar = () => { estado.habilidade = h.slot; renderizar(); };
+      // Sem ícone na API, volta para a pílula de texto: um botão vazio não diz nada.
+      if (!h.displayIcon) return pilula(h.displayName, escolhida, `habilidade:${h.slot}`, clicar);
+      return elemento("button", {
+        type: "button", class: "habilidade-icone chf", "data-foco": `habilidade:${h.slot}`,
+        "aria-pressed": String(escolhida), "aria-label": h.displayName, title: h.displayName,
+        onclick: clicar,
+      }, [elemento("img", { src: h.displayIcon, alt: "", loading: "lazy" })]);
+    }),
   );
 }
 
@@ -229,25 +238,56 @@ function pintarFiltroLado() {
   );
 }
 
-/** O seletor lista só agentes que têm ponto no mapa: os outros levariam a uma tela vazia. */
-function pintarSeletorDeAgente() {
-  const sel = $("selAgente");
+/** Só agentes que têm ponto no mapa: os outros levariam a uma tela vazia. */
+function agentesDoMapa() {
   const doMapa = pontosDoMapa(estado.pontos, estado.mapa.uuid);
   const uuids = new Set(doMapa.map((p) => p.agente).filter(Boolean));
-  const agentes = estado.agentes
+  return estado.agentes
     .filter((a) => uuids.has(a.uuid))
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "pt-BR"));
+}
 
-  if (!agentes.some((a) => a.uuid === estado.agente)) {
-    estado.agente = null;
+/** Agente escolhido que não tem ponto no mapa recém-aberto volta para "só posições". */
+function ajustarAgenteAoMapa() {
+  if (agentesDoMapa().some((a) => a.uuid === estado.agente)) return;
+  estado.agente = null;
+  estado.habilidade = null;
+}
+
+/**
+ * A fileira de retratos, como a escolha de agente do jogo. O nome vem escrito
+ * embaixo do retrato de propósito: reconhecer o agente pela cara exclui quem
+ * não os decora, e esta fileira é a porta de entrada da página. O primeiro
+ * botão é o estado inicial (só posições, sem agente).
+ */
+function pintarFiltroAgente() {
+  const escolher = (uuid) => () => {
+    estado.agente = uuid;
     estado.habilidade = null;
-  }
+    renderizar();
+  };
 
-  sel.replaceChildren(
-    elemento("option", { value: "", texto: "Nenhum — só posições" }),
-    ...agentes.map((a) => elemento("option", { value: a.uuid, texto: a.displayName })),
+  $("filtroAgente").replaceChildren(
+    elemento("button", {
+      type: "button", class: "retrato chf", "data-foco": "agente:nenhum",
+      "aria-pressed": String(!estado.agente), "aria-label": "Só posições, sem agente",
+      onclick: escolher(null),
+    }, [
+      elemento("span", { class: "retrato__arte retrato__arte--vazia", "aria-hidden": "true" }),
+      elemento("span", { class: "retrato__nome", texto: "Só posições" }),
+    ]),
+    ...agentesDoMapa().map((a) =>
+      elemento("button", {
+        type: "button", class: "retrato chf", "data-foco": `agente:${a.uuid}`,
+        "aria-pressed": String(a.uuid === estado.agente), "aria-label": a.displayName,
+        onclick: escolher(a.uuid),
+      }, [
+        a.displayIcon
+          ? elemento("img", { class: "retrato__arte", src: a.displayIcon, alt: "", loading: "lazy" })
+          : elemento("span", { class: "retrato__arte retrato__arte--vazia", "aria-hidden": "true" }),
+        elemento("span", { class: "retrato__nome", texto: a.displayName }),
+      ])),
   );
-  sel.value = estado.agente ?? "";
 }
 
 /**
@@ -277,6 +317,7 @@ function desenhar() {
     estado.selecionado = null;
   }
 
+  pintarFiltroAgente();
   pintarFiltroHabilidade();
   pintarFiltroLado();
   $("blocoLugar").hidden = !estado.lugar;
@@ -327,7 +368,7 @@ function escolherMapa(uuid) {
 
   comFocoPreservado(() => {
     pintarBarraDeMapas();
-    pintarSeletorDeAgente();
+    ajustarAgenteAoMapa();
     minimapa = montarMinimapa($("minimapa"), {
       mapa,
       pontos: [],
@@ -404,16 +445,11 @@ async function iniciar() {
   vestirPagina(conteudo, { aqui: "mapas.html", titulo: "Sala de Mapas" });
   carregarConta().then(montarBotaoDeConta);
 
-  $("selAgente").addEventListener("change", (ev) => {
-    estado.agente = ev.target.value || null;
-    estado.habilidade = null;
-    renderizar();
-  });
   $("limparLugar").addEventListener("click", () => {
     estado.lugar = null;
     renderizar();
-    // O botão some junto com o filtro; o foco vai para o seletor em vez de cair no <body>.
-    $("selAgente").focus();
+    // O botão some junto com o filtro; o foco vai para o agente escolhido em vez de cair no <body>.
+    $("filtroAgente").querySelector('[aria-pressed="true"]')?.focus();
   });
 
   await carregarDados();

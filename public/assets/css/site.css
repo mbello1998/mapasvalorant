@@ -1664,12 +1664,41 @@ a.feed__item:hover::before { background: var(--sinal); }
 .sala__bloco .filtros { margin-bottom: 0; }
 .sala__rotulo { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
 .sala__lugar { font-size: var(--t-s); color: var(--tinta-2); line-height: 1.5; }
-.sala__select {
-  width: 100%; padding: 0.55rem 0.7rem;
-  background: var(--aco-fundo); color: var(--luz);
-  border: var(--borda) solid var(--linha); font: inherit; font-size: var(--t-s);
+
+/* A escolha de agente: uma fileira de retratos, como a tela do jogo. Quebra de
+   linha livre (flex-wrap) para caber em qualquer largura, e o nome fica escrito
+   embaixo do retrato, que sozinho excluiria quem não decora os agentes. Mesma
+   linguagem dos cartões .modo: fundo de aço, borda fina, anel de sinal no
+   escolhido. */
+.sala__agentes { display: flex; flex-wrap: wrap; gap: var(--e-2); }
+.retrato {
+  --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina);
+  border: 0; cursor: pointer; width: 76px;
+  padding: var(--e-1); display: grid; gap: var(--e-1); align-content: start;
+  text-align: center;
+  transition: background-color 160ms ease;
 }
-.sala__select:focus-visible { outline: 2px solid var(--latao); outline-offset: 2px; }
+.retrato:hover { --chf-fundo: var(--aco-alto); }
+.retrato[aria-pressed="true"] { --chf-borda: var(--sinal); --chf-anel: 2px; --chf-fundo: var(--aco-alto); }
+.retrato__arte { width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--aco); }
+/* "Só posições" não tem retrato: o mesmo alvo do favicon, anel e ponto. */
+.retrato__arte--vazia { display: grid; place-items: center; }
+.retrato__arte--vazia::before {
+  content: ""; width: 46%; aspect-ratio: 1; border-radius: 50%;
+  border: 3px solid var(--sinal); box-shadow: inset 0 0 0 5px var(--aco), inset 0 0 0 100px var(--sinal);
+}
+.retrato__nome { font-size: var(--t-xs); font-weight: 600; color: var(--tinta-2); line-height: 1.2; overflow-wrap: anywhere; }
+.retrato[aria-pressed="true"] .retrato__nome { color: var(--luz); }
+
+/* Habilidade escolhida pelo ícone; o nome vai em title e aria-label. */
+.habilidade-icone {
+  --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina);
+  border: 0; cursor: pointer; width: 44px; height: 44px; padding: 0;
+  display: grid; place-items: center;
+}
+.habilidade-icone:hover { --chf-fundo: var(--aco-alto); }
+.habilidade-icone[aria-pressed="true"] { --chf-borda: var(--sinal); --chf-anel: 2px; --chf-fundo: var(--aco-alto); }
+.habilidade-icone img { width: 28px; height: 28px; object-fit: contain; }
 
 .ponto {
   --corte: var(--corte-m); --chf-fundo: var(--aco); --chf-borda: var(--linha-fina);
