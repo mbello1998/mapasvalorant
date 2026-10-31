@@ -163,10 +163,20 @@ página já quebrou três vezes neste projeto).
      (ou um marcador de posição quando não é util);
    - uma linha de `de` até `para` nos pontos do tipo pixel, desenhada em SVG
      por cima da imagem, na cor do lado (ataque e defesa não se confundem).
-3. **Filtros** — agente (lista com ícone), habilidade (as quatro do agente
-   escolhido), lado (ataque / defesa / os dois). Sem agente escolhido, a tela
-   mostra as posições do mapa e nenhuma util, que é a visão de quem está
-   decidindo onde se colocar.
+3. **Filtros** — agente, habilidade, lado (ataque / defesa / os dois). Sem
+   agente escolhido, a tela mostra as posições do mapa e nenhuma util, que é a
+   visão de quem está decidindo onde se colocar.
+
+   **O agente se escolhe pelo retrato**, numa fileira de botões com a arte
+   oficial, como a tela de escolha do jogo — não numa lista suspensa. Quem
+   joga reconhece a cara antes de ler o nome, e a fileira mostra de uma vez
+   quem tem ponto naquele mapa. O nome fica escrito embaixo do retrato mesmo
+   assim: retrato sozinho exclui quem não decora os cinquenta agentes, e a
+   fileira é a porta de entrada da página. A habilidade, escolhido o agente,
+   também vira ícone, com o nome em `title` e em `aria-label`.
+
+   A fileira lista só quem tem ponto no mapa aberto, e o primeiro botão é
+   "só posições", que é o estado inicial.
    Mais um, que é o filtro que faz a diferença na prática: **clicar num lugar
    do minimapa** deixa só o que sai dali ou cai ali. É como se procura de
    verdade — "estou nesse canto, o que dá para fazer daqui" —, e sai de graça
