@@ -3,8 +3,12 @@ import { getStore } from "@netlify/blobs";
 import { autorizar } from "../lib/auth.mts";
 import { normalizarPonto, lerPontos, novoId, LIMITE_PONTOS } from "../lib/tatica.mts";
 import type { Ponto } from "../lib/tatica.mts";
+import { ACERVO } from "../lib/acervo-tatica.mts";
 
 const CHAVE = "pontos";
+// Marca que o acervo inicial já foi gravado. Sem ela, apagar tudo pelo painel
+// faria o acervo voltar na visita seguinte.
+const SEMEADO = "semeado";
 
 // Consistência forte: o painel grava e recarrega a lista em seguida, e precisa
 // ver o que acabou de salvar.
@@ -82,10 +86,31 @@ export default async (req: Request, _context: Context) => {
 
   if (req.method === "GET") {
     let pontos: Ponto[] = [];
+    let leu = false;
     try {
       pontos = lerPontos(await l.get(CHAVE, { type: "json" }));
+      leu = true;
     } catch (e) {
       console.error("Falha ao ler os pontos:", e);
+    }
+
+    // Depósito vazio e nunca semeado: grava o acervo uma vez. Só depois de uma
+    // leitura que deu certo, para não semear por cima de pontos que não se leu.
+    // Os pontos entram antes da marca: se a marca falhar, o pior caso é o acervo
+    // reaparecer uma vez depois de o dono apagar tudo; o inverso deixaria a
+    // página vazia para sempre.
+    if (leu && pontos.length === 0) {
+      try {
+        if ((await l.get(SEMEADO)) === null) {
+          const agora = new Date().toISOString();
+          const semeados = ACERVO.map((p) => ({ ...p, id: novoId(), criadoEm: agora }));
+          await l.setJSON(CHAVE, semeados);
+          pontos = semeados;
+          await l.set(SEMEADO, agora);
+        }
+      } catch (e) {
+        console.error("Falha ao semear o acervo:", e);
+      }
     }
     const mapa = url.searchParams.get("mapa");
     if (mapa) pontos = pontos.filter((p) => p.mapa === mapa);
@@ -116,6 +141,13 @@ export default async (req: Request, _context: Context) => {
   const gravar = async (lista: Ponto[]): Promise<Response | null> => {
     try {
       await l.setJSON(CHAVE, lista);
+      // Quem já mexeu na lista pelo painel não precisa do acervo: sem a marca,
+      // apagar tudo depois traria o acervo de volta.
+      try {
+        if ((await l.get(SEMEADO)) === null) await l.set(SEMEADO, new Date().toISOString());
+      } catch (e) {
+        console.error("Falha ao gravar a marca de semeado:", e);
+      }
       return null;
     } catch (e) {
       console.error("Falha ao gravar os pontos:", e);

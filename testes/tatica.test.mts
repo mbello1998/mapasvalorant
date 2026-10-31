@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { normalizarPonto, lerPontos, LIMITE_PONTOS, novoId } from "../netlify/lib/tatica.mts";
+import { ACERVO } from "../netlify/lib/acervo-tatica.mts";
 
 const MAPAS = new Set(["uuid-ascent"]);
 const base = {
@@ -186,4 +187,38 @@ test("lerPontos devolve os pontos de um array válido", () => {
 
 test("lerPontos descarta só os itens quebrados e sem id", () => {
   assert.deepEqual(lerPontos([null, gravado, { titulo: "sem id" }, 7]), [gravado]);
+});
+
+// O acervo é semeado pela rota; um ponto que a própria validação recusa nunca
+// apareceria. O conjunto de mapas aqui é o dos mapas que o acervo cita.
+const MAPAS_DO_ACERVO = new Set(ACERVO.map((p) => p.mapa));
+
+test("o acervo não está vazio e cobre 13 mapas", () => {
+  assert.ok(ACERVO.length > 0);
+  assert.equal(MAPAS_DO_ACERVO.size, 13);
+});
+
+test("todo ponto do acervo passa por normalizarPonto sem erro", () => {
+  for (const p of ACERVO) {
+    const r = normalizarPonto(p, MAPAS_DO_ACERVO);
+    assert.equal(r.ok, true, `${p.titulo}: ${r.ok ? "" : r.erro}`);
+  }
+});
+
+test("nenhum ponto do acervo vem como conferido", () => {
+  for (const p of ACERVO) assert.equal(p.conferido, false, p.titulo);
+});
+
+test("o acervo não traz imagem nem vídeo de terceiros", () => {
+  for (const p of ACERVO) {
+    assert.deepEqual(p.imagens, [], p.titulo);
+    assert.equal(p.video, null, p.titulo);
+  }
+});
+
+test("no acervo, pixel tem destino e posição não tem", () => {
+  for (const p of ACERVO) {
+    if (p.tipo === "pixel") assert.ok(p.para && p.agente && p.habilidade, p.titulo);
+    else assert.equal(p.para, null, p.titulo);
+  }
 });
