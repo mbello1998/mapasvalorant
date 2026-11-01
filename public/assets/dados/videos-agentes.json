@@ -7,6 +7,22 @@
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=RT1paMDCRZE"
   },
+  "5f8d3a7f-467b-97f3-062c-13acf203c006": {
+    "agente": "Breach",
+    "plataforma": "youtube",
+    "id": "Rux0HjzKQbw",
+    "titulo": "GOLDEN MOMENT // BREACH",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=Rux0HjzKQbw"
+  },
+  "9f0d8ba9-4140-b941-57d3-a7ad57c6b417": {
+    "agente": "Brimstone",
+    "plataforma": "youtube",
+    "id": "7yHnJ_oNxTI",
+    "titulo": "GOLDEN MOMENT // BRIMSTONE",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=7yHnJ_oNxTI"
+  },
   "22697a3d-45bf-8dd7-4fec-84a9e28c69d7": {
     "agente": "Chamber",
     "plataforma": "youtube",
@@ -22,6 +38,14 @@
     "titulo": "Revelação da Mecânica Oficial de Clove",
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=0Pli-UicF34"
+  },
+  "117ed9e3-49f3-6512-3ccf-0cada7e3823b": {
+    "agente": "Cypher",
+    "plataforma": "youtube",
+    "id": "SgbqFtRRgLA",
+    "titulo": "GOLDEN MOMENT // CYPHER",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=SgbqFtRRgLA"
   },
   "cc8b64c8-4b25-4ff9-6e7f-37b4da43d235": {
     "agente": "Deadlock",
@@ -71,6 +95,22 @@
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=Dileub-o7no"
   },
+  "add6443a-41bd-e414-f6ad-e58d267f4e95": {
+    "agente": "Jett",
+    "plataforma": "youtube",
+    "id": "e_E9W2vsRbQ",
+    "titulo": "DUELISTS // Official Launch Cinematic Trailer",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=e_E9W2vsRbQ"
+  },
+  "601dbbe7-43ce-be57-2a40-4abd24953621": {
+    "agente": "KAY/O",
+    "plataforma": "youtube",
+    "id": "AUfDJAn3Upw",
+    "titulo": "Tráiler de presentación de KAY/O",
+    "autor": "VALORANT - LATAM",
+    "url": "https://www.youtube.com/watch?v=AUfDJAn3Upw"
+  },
   "1e58de9c-4950-5125-93e9-a0aee9f98746": {
     "agente": "Killjoy",
     "plataforma": "youtube",
@@ -95,6 +135,22 @@
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=aIUz5j8DRNY"
   },
+  "8e253930-4c05-31dd-1b6c-968525494517": {
+    "agente": "Omen",
+    "plataforma": "youtube",
+    "id": "_jJdWy6bDj4",
+    "titulo": "GOLDEN MOMENT // OMEN",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=_jJdWy6bDj4"
+  },
+  "eb93336a-449b-9c1b-0a54-a891f7921d69": {
+    "agente": "Phoenix",
+    "plataforma": "youtube",
+    "id": "ttJMFW2wUQM",
+    "titulo": "GOLDEN MOMENT // PHOENIX",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=ttJMFW2wUQM"
+  },
   "f94c3b30-42be-e959-889c-5aa313dba261": {
     "agente": "Raze",
     "plataforma": "youtube",
@@ -102,6 +158,38 @@
     "titulo": "GOLDEN MOMENT // RAZE",
     "autor": "VALORANT",
     "url": "https://www.youtube.com/watch?v=2-uAL__pp_U"
+  },
+  "a3bfb853-43b2-7238-a4f1-ad90e9e46bcc": {
+    "agente": "Reyna",
+    "plataforma": "youtube",
+    "id": "IzsQNYrq9AM",
+    "titulo": "GOLDEN MOMENT // REYNA",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=IzsQNYrq9AM"
+  },
+  "569fdd95-4d10-43ab-ca70-79becc718b46": {
+    "agente": "Sage",
+    "plataforma": "youtube",
+    "id": "1aRwM_QsqQI",
+    "titulo": "GOLDEN MOMENT // SAGE",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=1aRwM_QsqQI"
+  },
+  "6f2a04ca-43e0-be17-7f36-b3908627744d": {
+    "agente": "Skye",
+    "plataforma": "youtube",
+    "id": "C3QTyMXi-WE",
+    "titulo": "Skye Agent Reveal trailer",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=C3QTyMXi-WE"
+  },
+  "320b2a48-4d9b-a075-30f1-1f93a9b638fa": {
+    "agente": "Sova",
+    "plataforma": "youtube",
+    "id": "OZ76UP-c8Ao",
+    "titulo": "GOLDEN MOMENT // SOVA",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=OZ76UP-c8Ao"
   },
   "b444168c-4e35-8076-db47-ef9bf368f384": {
     "agente": "Tejo",
@@ -118,6 +206,14 @@
     "titulo": "VÃO COMER POEIRA // Trailer de Agente: Veto",
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=UPdmbAdTmeY"
+  },
+  "707eab51-4836-f488-046a-cda6bf494859": {
+    "agente": "Viper",
+    "plataforma": "youtube",
+    "id": "9dOSy0EhLfQ",
+    "titulo": "GOLDEN MOMENT // VIPER",
+    "autor": "VALORANT",
+    "url": "https://www.youtube.com/watch?v=9dOSy0EhLfQ"
   },
   "efba5359-4016-a1e5-7626-b1ae76895940": {
     "agente": "Vyse",
