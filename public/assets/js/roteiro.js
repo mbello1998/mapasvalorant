@@ -74,3 +74,208 @@ export function telaDoEstado(estado) {
   const tela = estado && typeof estado === "object" ? estado.tela : null;
   return typeof tela === "string" && Object.hasOwn(TELAS, tela) ? tela : null;
 }
+
+/* ==========================================================================
+   Daqui para baixo mexe no documento. Nada roda na importação: quem começa é
+   `comecar()`, no fim do arquivo, e só quando existe um documento.
+   ========================================================================== */
+
+/** O que é da casca e nunca é trocado. */
+const DA_CASCA = "nav.trilho, footer.rodape, script, .rota-barra, #rotaAviso";
+
+/** A tela na tela. */
+let atual = null;
+
+/** Cada troca ganha um número: uma que voltou do fetch com o número vencido
+ *  perdeu para um clique mais novo e é descartada sem pintar nada. */
+let contador = 0;
+
+/** Os módulos já importados, para a segunda visita não baixar de novo. */
+const modulos = new Map();
+
+async function moduloDa(tela) {
+  if (!modulos.has(tela)) modulos.set(tela, await import(TELAS[tela].modulo));
+  return modulos.get(tela);
+}
+
+/* ----------------------------------------------------------------- barra -- */
+
+function barra() {
+  return document.getElementById("rotaBarra");
+}
+
+function acenderBarra() {
+  const b = barra();
+  if (!b) return;
+  b.hidden = false;
+  b.classList.remove("rota-barra--pronta");
+  // Um quadro de respiro: sem ele o navegador junta as duas classes e a
+  // transição não acontece.
+  requestAnimationFrame(() => b.classList.add("rota-barra--correndo"));
+}
+
+function apagarBarra() {
+  const b = barra();
+  if (!b) return;
+  b.classList.add("rota-barra--pronta");
+  setTimeout(() => {
+    b.hidden = true;
+    b.classList.remove("rota-barra--correndo", "rota-barra--pronta");
+  }, 260);
+}
+
+/* ----------------------------------------------------------------- troca -- */
+
+/**
+ * Põe no lugar os elementos da tela nova, respeitando onde cada um morava em
+ * relação ao trilho e ao rodapé: o link de pular antes do trilho, o `main`
+ * entre os dois, e as gavetas e telas de carga depois do rodapé.
+ */
+function trocarCorpo(doc) {
+  for (const el of [...document.body.children]) {
+    if (!el.matches(DA_CASCA)) el.remove();
+  }
+
+  const trilho = document.querySelector("nav.trilho");
+  const rodape = document.querySelector("footer.rodape");
+  const fim = document.getElementById("rotaBarra");
+
+  let destino = trilho;
+  for (const el of [...doc.body.children]) {
+    if (el.matches("nav.trilho")) { destino = rodape; continue; }
+    if (el.matches("footer.rodape")) { destino = fim; continue; }
+    if (el.matches(DA_CASCA)) continue;
+    const novo = document.adoptNode(el);
+    if (destino) destino.before(novo);
+    else document.body.append(novo);
+  }
+}
+
+/** Foco e rolagem depois da troca: quem navega por teclado não pode continuar
+ *  no fim do documento que acabou de sair. */
+function assentar(tela, ancora) {
+  const alvo = ancora && document.querySelector(ancora);
+  if (alvo) {
+    alvo.scrollIntoView();
+  } else {
+    window.scrollTo(0, 0);
+  }
+
+  const titulo = document.querySelector("main h1");
+  if (titulo) {
+    titulo.setAttribute("tabindex", "-1");
+    titulo.focus({ preventScroll: true });
+  }
+
+  const aviso = document.getElementById("rotaAviso");
+  if (aviso) aviso.textContent = `${TELAS[tela].rotulo}, carregado.`;
+}
+
+/**
+ * Abrir uma tela. `doHistorico` marca a volta pelo botão Voltar: a entrada já
+ * está no histórico e não deve ser empilhada de novo.
+ */
+export async function abrir(tela, { doHistorico = false, ancora = "" } = {}) {
+  const alvo = TELAS[tela];
+  if (!alvo) return;
+
+  const meu = ++contador;
+  const principal = document.querySelector("main");
+  acenderBarra();
+  principal?.classList.add("palco--saindo");
+
+  let doc;
+  try {
+    const [resposta] = await Promise.all([
+      fetch(alvo.arquivo, { headers: { Accept: "text/html" } }),
+      // Piso de tempo: sem ele a barra pisca quando a resposta vem do cache.
+      new Promise((ok) => setTimeout(ok, 180)),
+    ]);
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    doc = new DOMParser().parseFromString(await resposta.text(), "text/html");
+  } catch {
+    // Nenhuma falha do roteador pode deixar o site numa tela apagada: o
+    // navegador leva a pessoa até lá do jeito antigo.
+    location.href = alvo.arquivo;
+    return;
+  }
+
+  if (meu !== contador) return;
+
+  if (atual) {
+    const saindo = await moduloDa(atual);
+    saindo.desmontar?.();
+  }
+
+  trocarCorpo(doc);
+  atual = tela;
+
+  try {
+    const entrando = await moduloDa(tela);
+    await entrando.iniciar();
+  } catch {
+    location.href = alvo.arquivo;
+    return;
+  }
+
+  if (meu !== contador) return;
+
+  document.querySelector("main")?.classList.add("palco--entrando");
+  assentar(tela, ancora);
+  apagarBarra();
+
+  if (!doHistorico) history.pushState({ tela }, "", location.href);
+}
+
+/* ---------------------------------------------------------------- cliques -- */
+
+function aoClicar(ev) {
+  const a = ev.target.closest?.("a[href]");
+  if (!a) return;
+
+  const dados = {
+    botao: ev.button, meta: ev.metaKey, ctrl: ev.ctrlKey,
+    shift: ev.shiftKey, alt: ev.altKey, jaTratado: ev.defaultPrevented,
+    alvo: a.target, baixar: a.hasAttribute("download"),
+    href: a.href, origem: location.origin, telaAtual: atual,
+  };
+
+  if (podeTrocar(dados)) {
+    ev.preventDefault();
+    const ancora = new URL(a.href, location.origin).hash;
+    abrir(telaDoHref(a.href, location.origin), { ancora });
+    return;
+  }
+
+  // O link da tela em que já se está, sem âncora, recarregaria a página e
+  // tiraria o endereço da raiz. Rolar ao topo é o que ele quer dizer.
+  const tela = telaDoHref(a.href, location.origin);
+  if (tela && tela === atual && !new URL(a.href, location.origin).hash
+      && !ev.defaultPrevented && ev.button === 0
+      && !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)) {
+    ev.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+/* ---------------------------------------------------------------- começo -- */
+
+export async function comecar() {
+  // Antes de qualquer `import()`: é esta marca que diz aos módulos de tela
+  // para não se autoiniciarem.
+  document.body.dataset.casca = "sim";
+  document.addEventListener("click", aoClicar);
+
+  const inicial = telaInicial(location.pathname, null);
+
+  if (inicial === "estande") {
+    // A tela inicial já veio pronta no HTML da casca.
+    atual = inicial;
+    const modulo = await moduloDa(inicial);
+    await modulo.iniciar();
+  } else {
+    await abrir(inicial, { doHistorico: true });
+  }
+}
+
+if (typeof document !== "undefined") comecar();

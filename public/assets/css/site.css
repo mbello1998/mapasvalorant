@@ -563,6 +563,31 @@ a.feed__item:hover::before { background: var(--sinal); }
 .mapa__nome { font-family: var(--fonte-display); font-weight: 700; font-size: var(--t-m); }
 .mapa__desc { font-size: var(--t-s); color: var(--tinta-2); line-height: 1.45; margin-top: var(--e-1); }
 
+/* ---------------------------------------------------------------- rotas --- */
+/* A troca de tela: uma barra que corre no topo enquanto a próxima chega, e o
+   conteúdo saindo e entrando. Curto de propósito — isto acontece a cada
+   clique no trilho, e o que encanta na primeira vez cansa na décima. */
+.rota-barra {
+  position: fixed; inset: 0 auto auto 0; z-index: 90;
+  height: 3px; width: 0;
+  background: var(--sinal);
+  transition: width 420ms ease-out, opacity 200ms ease;
+}
+.rota-barra--correndo { width: 70%; }
+.rota-barra--pronta {
+  width: 100%; opacity: 0;
+  transition: width 140ms ease-out, opacity 200ms ease 100ms;
+}
+
+.palco--saindo { opacity: 0; transition: opacity 160ms ease; }
+.palco--entrando { animation: telaEntra 200ms cubic-bezier(.16,.84,.44,1) both; }
+@keyframes telaEntra { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes telaAparece { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .palco--entrando { animation: telaAparece 160ms ease both; }
+}
+
 /* -------------------------------------------------------------- rodape ---- */
 .rodape { background: var(--aco); padding: var(--e-6) var(--e-5) var(--e-5); }
 .rodape__grade { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--e-5); }
