@@ -6,6 +6,13 @@
   publish = "public"
   command = "echo 'site estatico — nada para compilar'"
 
+# A arte dos mapas vem do CDN da Riot em 1920x1080 e 2,3 MB por imagem — bom
+# demais para um cartao de 260px e pesado demais para 25 deles. O CDN de
+# imagem da Netlify redimensiona e converte para WebP na borda, e so pode
+# tocar nos enderecos declarados aqui.
+[images]
+  remote_images = ['https://media\.valorant-api\.com/.*']
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"

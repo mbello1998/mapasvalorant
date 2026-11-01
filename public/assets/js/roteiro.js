@@ -15,12 +15,20 @@ export const TELAS = {
   ranking: { arquivo: "ranking.html", modulo: "./ranking.js", rotulo: "Ranking" },
 };
 
-const POR_ARQUIVO = new Map(Object.entries(TELAS).map(([id, t]) => [t.arquivo, id]));
+/** A tela por nome de arquivo sem extensão. É sem extensão porque o endereço
+ *  da mesma tela chega de três jeitos: `linha.html` como está escrito no HTML,
+ *  `/linha` depois de a Netlify reescrever os links para endereço limpo, e
+ *  `/linha/` se alguém digitar com a barra. Os três são a Linha de Tiro, e
+ *  quando o roteador reconhecia só o primeiro os outros dois saíam da página. */
+const POR_NOME = new Map(
+  Object.entries(TELAS).map(([id, t]) => [t.arquivo.replace(/\.html$/, ""), id]),
+);
 
 /** A raiz serve o index, então caminho vazio é a tela inicial. */
 function telaDoCaminho(caminho) {
-  const arquivo = String(caminho ?? "").replace(/^\/+/, "") || "index.html";
-  return POR_ARQUIVO.get(arquivo) ?? null;
+  const cru = String(caminho ?? "").replace(/^\/+/, "").replace(/\/+$/, "");
+  const nome = (cru || "index").replace(/\.html$/, "");
+  return POR_NOME.get(nome) ?? null;
 }
 
 /** Qual tela um link representa, ou null se não for uma delas. */
@@ -70,8 +78,10 @@ export function telaInicial(caminho, marca) {
 /** Quem abriu uma tela por fora da raiz precisa ser trazido para ela. O que
  *  não é tela — o Painel, por exemplo — fica onde está. */
 export function precisaDesviar(caminho) {
-  if (caminho === "/" || caminho === "/index.html") return false;
-  return telaDoCaminho(caminho) !== null;
+  const tela = telaDoCaminho(caminho);
+  // O Estande é o que a raiz já serve: quem está nele está em casa, seja o
+  // caminho `/`, `/index` ou `/index.html`.
+  return tela !== null && tela !== "estande";
 }
 
 /**
@@ -128,7 +138,7 @@ export function telaDoEstado(estado) {
    ========================================================================== */
 
 /** O que é da casca e nunca é trocado. */
-const DA_CASCA = "nav.trilho, footer.rodape, script, .rota-barra, #rotaAviso";
+const DA_CASCA = "nav.trilho, footer.rodape, script, .rota-barra, .rota-veu, #rotaAviso";
 
 /** A tela na tela. */
 let atual = null;
@@ -173,6 +183,33 @@ function apagarBarra() {
     b.hidden = true;
     b.classList.remove("rota-barra--correndo", "rota-barra--pronta");
   }, 260);
+}
+
+/* ------------------------------------------------------------------ véu -- */
+/* O que a pessoa vê durante a troca: a tela escurece, a mira gira no meio e
+   a barra corre, com o nome da tela que está chegando. Ele cobre o instante
+   em que o corpo da página é trocado, que é a parte feia do processo. */
+
+let relogioVeu = 0;
+
+function acenderVeu(tela) {
+  const v = document.getElementById("rotaVeu");
+  if (!v) return;
+  clearTimeout(relogioVeu);
+  const nome = v.querySelector("#rotaVeuTela");
+  if (nome) nome.textContent = TELAS[tela]?.rotulo ?? "";
+  v.hidden = false;
+  // Um quadro antes da classe: `hidden` e opacidade 1 no mesmo quadro não
+  // dão transição nenhuma, e o véu apareceria estalado.
+  requestAnimationFrame(() => v.classList.add("rota-veu--aberto"));
+}
+
+function apagarVeu() {
+  const v = document.getElementById("rotaVeu");
+  if (!v) return;
+  v.classList.remove("rota-veu--aberto");
+  clearTimeout(relogioVeu);
+  relogioVeu = setTimeout(() => { v.hidden = true; }, 220);
 }
 
 /* ----------------------------------------------------------------- troca -- */
@@ -233,14 +270,35 @@ export async function abrir(tela, { doHistorico = false, ancora = "" } = {}) {
   const meu = ++contador;
   const principal = document.querySelector("main");
   acenderBarra();
+  acenderVeu(tela);
+  // A animação de entrada é `both`: enquanto a classe dela estiver no palco,
+  // o fim dela manda na opacidade e a transição de saída não acontece. Era
+  // por isso que a tela antiga sumia de uma vez, sem desaparecer.
+  principal?.classList.remove("palco--entrando");
   principal?.classList.add("palco--saindo");
+
+  // Dois quadros de respiro antes do trabalho pesado. O `fetch` e o `import()`
+  // logo abaixo prendem a linha principal, e sem esta pausa a animação de
+  // saída nem chega a dar o primeiro passo: ela fica parada em opacidade 1 e
+  // a tela some de um quadro para o outro. Com a pausa, a animação começa e
+  // passa a correr fora da linha principal, que pode travar à vontade.
+  //
+  // Com prazo: numa aba que o navegador não está desenhando — atrás de outra
+  // janela, por exemplo — o quadro pode demorar um segundo ou nunca vir, e
+  // esperar por ele seguraria a troca de tela inteira. Lá não há animação
+  // para proteger de qualquer forma.
+  await Promise.race([
+    new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))),
+    new Promise((ok) => setTimeout(ok, 50)),
+  ]);
 
   let doc;
   try {
     const [resposta] = await Promise.all([
       fetch(alvo.arquivo, { headers: { Accept: "text/html" } }),
-      // Piso de tempo: sem ele a barra pisca quando a resposta vem do cache.
-      new Promise((ok) => setTimeout(ok, 180)),
+      // Piso de tempo: sem ele a barra pisca quando a resposta vem do cache,
+      // e a tela sai pela metade. Acompanha a saída do palco, no CSS.
+      new Promise((ok) => setTimeout(ok, 240)),
     ]);
     if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
     doc = new DOMParser().parseFromString(await resposta.text(), "text/html");
@@ -261,6 +319,12 @@ export async function abrir(tela, { doHistorico = false, ancora = "" } = {}) {
   trocarCorpo(doc);
   atual = tela;
 
+  // Invisível desde já. O módulo da tela ainda vai carregar os dados dela, e
+  // sem isto o conteúdo cru apareceria opaco nesse intervalo para só então
+  // começar a animação de entrada — o pulo que deixava a troca seca.
+  const chegando = document.querySelector("main");
+  chegando?.classList.add("palco--chegando");
+
   // Mais um clique chegou enquanto trocávamos o corpo: quem perdeu não monta
   // a tela, para não escrever título e trilho por cima da que vai ficar.
   if (meu !== contador) return;
@@ -277,9 +341,14 @@ export async function abrir(tela, { doHistorico = false, ancora = "" } = {}) {
 
   if (meu !== contador) return;
 
-  document.querySelector("main")?.classList.add("palco--entrando");
+  // A rolagem primeiro, com a tela ainda invisível: assim a pessoa não vê o
+  // documento saltar para o topo — ele já está lá quando a tela aparece.
   assentar(tela, ancora);
+  const palco = document.querySelector("main");
+  palco?.classList.remove("palco--chegando");
+  palco?.classList.add("palco--entrando");
   apagarBarra();
+  apagarVeu();
 
   if (!doHistorico) history.pushState({ tela }, "", location.href);
 }

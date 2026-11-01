@@ -110,3 +110,46 @@ test("link escrito com arquivo continua trocando de tela", () => {
     true,
   );
 });
+
+test("endereço limpo é a mesma tela que o arquivo .html", () => {
+  // A Netlify reescreve os links do HTML publicado: `linha.html` chega no
+  // navegador como `/linha`. Sem reconhecer essa forma, os três portais da
+  // página inicial saíam da página em vez de trocar de tela.
+  assert.equal(telaDoHref(`${ORIGEM}/linha`, ORIGEM), "linha");
+  assert.equal(telaDoHref(`${ORIGEM}/arsenal`, ORIGEM), "arsenal");
+  assert.equal(telaDoHref(`${ORIGEM}/mapas/`, ORIGEM), "mapas");
+  assert.equal(telaDoHref(`${ORIGEM}/ranking#tabela`, ORIGEM), "ranking");
+  assert.equal(telaDoHref(`${ORIGEM}/index`, ORIGEM), "estande");
+  assert.equal(telaDoHref(`${ORIGEM}/admin`, ORIGEM), null, "o Painel não é tela");
+});
+
+test("clique em portal de endereço limpo troca de tela", () => {
+  assert.equal(podeTrocar(clique({ hrefCru: "/linha", href: `${ORIGEM}/linha` })), true);
+});
+
+test("a marca do trilho volta para o Estande de qualquer tela", () => {
+  // O trilho é da casca e não é trocado: o link da marca vale em toda tela.
+  for (const cru of ["index.html", "/"]) {
+    for (const tela of ["linha", "arsenal", "mapas", "ranking"]) {
+      assert.equal(
+        podeTrocar(clique({ hrefCru: cru, href: new URL(cru, ORIGEM).href, telaAtual: tela })),
+        true,
+        `${cru} em ${tela}`,
+      );
+    }
+    // No próprio Estande não há troca: quem cuida da rolagem até o topo é o
+    // roteiro, no segundo ramo do clique.
+    assert.equal(
+      podeTrocar(clique({ hrefCru: cru, href: new URL(cru, ORIGEM).href, telaAtual: "estande" })),
+      false,
+      cru,
+    );
+  }
+});
+
+test("desvia para a raiz também quem chegou por endereço limpo", () => {
+  assert.equal(precisaDesviar("/linha"), true);
+  assert.equal(precisaDesviar("/mapas/"), true);
+  assert.equal(precisaDesviar("/index"), false);
+  assert.equal(precisaDesviar("/admin"), false);
+});

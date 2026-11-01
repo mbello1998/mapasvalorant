@@ -47,6 +47,15 @@
       <div class="sala__mapas" id="barraMapas" role="group" aria-label="Mapas">
         <p class="carregando">Carregando mapas…</p>
       </div>
+
+      <!-- A ficha do mapa escolhido. Os agentes já tinham um parágrafo de
+           verdade e os mapas apareciam com duas palavras: a base da Riot não
+           traz descrição de mapa, então o texto é nosso (mapas-texto.js). -->
+      <article class="ficha-mapa chf" id="fichaMapa" hidden>
+        <h3 class="ficha-mapa__nome" id="fichaMapaNome"></h3>
+        <p class="ficha-mapa__meta" id="fichaMapaMeta"></p>
+        <p class="ficha-mapa__texto" id="fichaMapaTexto"></p>
+      </article>
     </div>
   </section>
 

@@ -5,6 +5,8 @@ import {
 import { montarEstande } from "./range.js";
 import { guardarPresenca, lembrarPresenca } from "./presenca.js";
 import { cofre } from "./roteiro.js";
+import { descricaoDoMapa, metaDoMapa, juntarDuelos } from "./mapas-texto.js";
+import { pintarArte } from "./imagem.js";
 import {
   $, elemento, texto, comoData, semMarcacao, vestirPagina,
 } from "./chrome.js";
@@ -556,11 +558,16 @@ function abrirAgente(a) {
 
 /* ----------------------------------------------------------------- mapas -- */
 
+/* A mesma chave da Sala de Mapas (mapas.js). Escrita aqui, como as outras que
+   duas telas dividem, para a tela inicial não precisar importar a Sala inteira
+   só por uma string. */
+const CHAVE_MAPA = "estande.mapa.v1";
+
 function montarMapas(mapas, destaqueUuid) {
   const grade = $("mapGrade");
   grade.replaceChildren();
 
-  const lista = mapas
+  const lista = juntarDuelos(mapas)
     .filter((m) => m.displayName && m.splash && m.displayName !== "The Range")
     .sort((a, b) => {
       if (destaqueUuid) {
@@ -573,17 +580,26 @@ function montarMapas(mapas, destaqueUuid) {
   $("mapConta").textContent = `${lista.length} mapas`;
 
   for (const m of lista) {
-    const cartao = document.createElement("article");
+    // Botão, como o cartão do agente: o mapa inteiro é clicável e abre o
+    // painel com a arte grande e o texto completo.
+    const cartao = document.createElement("button");
+    cartao.type = "button";
     cartao.className = "mapa chf";
+    cartao.setAttribute("aria-label", `Ver o mapa ${m.displayName}`);
 
     const arte = document.createElement("div");
     arte.className = "mapa__arte";
     const img = document.createElement("img");
-    img.src = m.listViewIcon || m.splash;
-    img.alt = `Vista do mapa ${m.displayName}`;
+    img.alt = "";
     img.loading = "lazy";
+    // A arte boa é a de 1920×1080; o CDN entrega ela do tamanho do cartão.
+    // `listViewIcon` só entra como último recurso: 456×100 esticado para
+    // 16/9 é a imagem borrada que estava aqui antes.
+    pintarArte(img, m.splash || m.listViewIconTall || m.listViewIcon, { largura: 300 });
     arte.append(img);
 
+    // Nome, linha fina e descrição vão por cima da arte, no pé do cartão —
+    // como o nome do agente fica por cima do retrato. Nada abaixo da arte.
     const corpo = document.createElement("div");
     corpo.className = "mapa__corpo";
     const nome = document.createElement("h3");
@@ -591,7 +607,13 @@ function montarMapas(mapas, destaqueUuid) {
     nome.textContent = m.displayName;
     corpo.append(nome);
 
-    const resumo = m.tacticalDescription || m.narrativeDescription;
+    // "Pontos A/B" é o que a Riot chama de descrição tática, e era tudo o que
+    // o cartão dizia. Lugar e sites viram a linha fina, e a descrição de
+    // verdade — a nossa — vira o parágrafo, como no painel do agente.
+    const meta = metaDoMapa(m);
+    if (meta) corpo.append(elemento("p", { class: "mapa__meta", texto: meta }));
+
+    const resumo = descricaoDoMapa(m);
     if (resumo) {
       const p = document.createElement("p");
       p.className = "mapa__desc";
@@ -599,9 +621,62 @@ function montarMapas(mapas, destaqueUuid) {
       corpo.append(p);
     }
 
-    cartao.append(arte, corpo);
+    arte.append(corpo);
+    cartao.append(arte);
+    cartao.addEventListener("click", () => abrirMapa(m));
     grade.append(cartao);
   }
+}
+
+/**
+ * O painel do mapa, irmão do painel do agente: a mesma gaveta, a mesma caixa
+ * chanfrada e o mesmo botão de fechar. Aqui em cima vai a arte grande em vez
+ * do ícone, porque é o que um mapa tem para mostrar.
+ */
+function abrirMapa(m) {
+  const gaveta = $("gaveta");
+  const caixa = $("gavetaCaixa");
+  caixa.replaceChildren();
+
+  const fechar = elemento("button", {
+    type: "button", class: "btn btn--vazio chf gaveta__fechar", texto: "Fechar",
+    onclick: () => gaveta.close(),
+  });
+
+  const capa = elemento("div", { class: "gaveta__capa" });
+  const arte = m.splash || m.listViewIconTall;
+  if (arte) {
+    const img = elemento("img", { alt: `Arte do mapa ${m.displayName}` });
+    pintarArte(img, arte, { largura: 560, qualidade: 78 });
+    capa.append(img);
+  }
+
+  const h = elemento("h3", { id: "gavetaNome", texto: m.displayName });
+  const meta = elemento("p", { class: "gaveta__meta", texto: metaDoMapa(m) });
+  const desc = elemento("p", { class: "gaveta__desc", texto: semMarcacao(descricaoDoMapa(m)) });
+
+  // As coordenadas são a brincadeira da Riot: o lugar de verdade, embaralhado.
+  // O atalho para a Sala de Mapas só aparece para mapa de partida — é o único
+  // que tem minimapa lá —, e deixa o mapa escolhido antes de sair, para a
+  // Sala abrir já nele.
+  const naSala = Boolean(m.tacticalDescription);
+  const pe = elemento("div", { class: "gaveta__pe" }, [
+    m.coordinates ? elemento("p", { class: "gaveta__coord", texto: m.coordinates }) : null,
+    naSala
+      ? elemento("a", {
+          class: "btn btn--latao chf", href: "mapas.html",
+          texto: "Abrir na Sala de Mapas",
+          onclick: () => {
+            try { localStorage.setItem(CHAVE_MAPA, m.uuid); } catch { /* modo privado */ }
+            gaveta.close();
+          },
+        })
+      : null,
+  ]);
+
+  const rolo = elemento("div", { class: "gaveta__rolo" }, [capa, h, meta, desc, pe]);
+  caixa.append(fechar, rolo);
+  gaveta.showModal();
 }
 
 /* -------------------------------------------- publicar o que acabou de ser

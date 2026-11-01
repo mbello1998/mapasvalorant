@@ -23,7 +23,11 @@
 
 <!-- O trilho fica fixo na lateral no desktop e vira barra no topo no celular. -->
 <nav class="trilho" aria-label="Seções do site">
-  <a class="marca" href="#topo" id="marca">
+  <!-- O trilho é da casca: este link fica na tela depois da troca, em qualquer
+       tela. Por isso aponta para o Estande em vez de "#topo" — como âncora ele
+       só rolava a página em que a pessoa estava e nunca trazia ninguém para
+       casa. Estando no Estande, o roteiro rola até o topo. -->
+  <a class="marca" href="index.html" id="marca">
     <span class="marca__sigla" data-campo="site.nome">Estande</span>
     <span class="marca__sufixo" data-campo="site.sufixo">BR</span>
   </a>
@@ -296,9 +300,28 @@
   <div class="gaveta__caixa chf" id="gavetaCaixa"></div>
 </dialog>
 
-<!-- A casca: a barra que corre enquanto a próxima tela chega, e o aviso que
-     diz a quem usa leitor de tela qual tela entrou. -->
+<!-- A casca: a barra que corre enquanto a próxima tela chega, o véu que
+     cobre a troca, e o aviso que diz a quem usa leitor de tela qual tela
+     entrou. O véu e a barra ficam aqui, fora do <main>, porque são da casca:
+     a troca de tela não os substitui. -->
 <div class="rota-barra" id="rotaBarra" hidden></div>
+
+<div class="rota-veu" id="rotaVeu" hidden aria-hidden="true">
+  <div class="rota-veu__caixa">
+    <svg class="rota-veu__mira" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle class="rota-veu__anel" cx="32" cy="32" r="26" fill="none" stroke-width="2"/>
+      <circle class="rota-veu__giro" cx="32" cy="32" r="26" fill="none" stroke-width="3"
+              stroke-linecap="round" stroke-dasharray="40 123"/>
+      <path class="rota-veu__cruz" d="M32 6v12M32 46v12M6 32h12M46 32h12" stroke-width="3" stroke-linecap="round"/>
+      <circle class="rota-veu__ponto" cx="32" cy="32" r="3.5"/>
+    </svg>
+    <p class="rota-veu__texto">
+      <span class="rota-veu__rotulo">Carregando</span>
+      <span class="rota-veu__tela" id="rotaVeuTela"></span>
+    </p>
+    <div class="rota-veu__barra"><b></b></div>
+  </div>
+</div>
 <p class="oculto" id="rotaAviso" role="status" aria-live="polite"></p>
 
 <script type="module" src="assets/js/roteiro.js"></script>

@@ -6,6 +6,8 @@ import {
   montarMinimapa, pontosDoMapa, filtrarPontos, filtrarPorLugar, filtrarPorTrajeto,
   agenteDoPonto, habilidadeDoPonto,
 } from "./minimapa.js";
+import { descricaoDoMapa, metaDoMapa } from "./mapas-texto.js";
+import { arte } from "./imagem.js";
 
 /**
  * A Sala de Mapas.
@@ -16,6 +18,9 @@ import {
  * o filtro moram em minimapa.js, onde têm teste; aqui fica só a tela.
  */
 
+/** O mapa aberto por último. O painel do mapa, na tela inicial, escreve na
+ *  mesma chave antes de mandar a pessoa para cá — é assim que a Sala abre no
+ *  mapa que ela estava vendo. */
 const CHAVE_MAPA = "estande.mapa.v1";
 
 const estadoLimpo = () => ({
@@ -415,9 +420,39 @@ function pintarBarraDeMapas() {
       title: m.displayName,
       onclick: () => escolherMapa(m.uuid),
     }, [
-      m.listViewIcon ? elemento("img", { class: "sala__miniatura", src: m.listViewIcon, alt: "", loading: "lazy" }) : null,
+      // A arte boa, do tamanho do botão: `listViewIcon` tem 456×100 e fica
+      // borrada mesmo nesta miniatura.
+      m.splash || m.listViewIcon
+        ? elemento("img", {
+            class: "sala__miniatura", alt: "", loading: "lazy",
+            src: arte(m.splash || m.listViewIcon, { largura: 132 }),
+          })
+        : null,
       elemento("span", { class: "sala__mapa-nome", texto: m.displayName }),
     ])));
+}
+
+/**
+ * A ficha do mapa escolhido: nome, onde fica no mundo, quantos sites e o
+ * parágrafo sobre como ele se joga. A base da Riot não traz descrição de
+ * mapa — `narrativeDescription` vem vazia e `tacticalDescription` é só
+ * "Pontos A/B" —, então o texto vem de `mapas-texto.js`.
+ */
+function pintarFichaDoMapa() {
+  const ficha = $("fichaMapa");
+  if (!ficha) return;
+
+  const mapa = estado.mapa;
+  const texto = descricaoDoMapa(mapa);
+  if (!mapa || !texto) {
+    ficha.hidden = true;
+    return;
+  }
+
+  $("fichaMapaNome").textContent = mapa.displayName;
+  $("fichaMapaMeta").textContent = metaDoMapa(mapa);
+  $("fichaMapaTexto").textContent = texto;
+  ficha.hidden = false;
 }
 
 function escolherMapa(uuid) {
@@ -435,6 +470,7 @@ function escolherMapa(uuid) {
 
   comFocoPreservado(() => {
     pintarBarraDeMapas();
+    pintarFichaDoMapa();
     ajustarAgenteAoMapa();
     minimapa = montarMinimapa($("minimapa"), {
       mapa,
@@ -467,6 +503,7 @@ function mostrarFalha() {
   $("listaPontos").replaceChildren();
   $("listaConta").textContent = "";
   $("dicaMapa").textContent = "";
+  $("fichaMapa").hidden = true;
 }
 
 async function carregarDados() {
