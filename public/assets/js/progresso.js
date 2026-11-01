@@ -10,6 +10,7 @@
  */
 
 import { elemento } from "./chrome.js";
+import { montarVisor } from "./visor.js";
 import { patenteDoIndice } from "./elo.js";
 
 const VAPI = "https://valorant-api.com/v1";
@@ -276,23 +277,58 @@ function montarCartoes(perfil, mapa) {
     });
   }
 
+  /* A lista que o visor recebe é só a dos cartões com arte grande, e cada
+     figura guarda a sua posição nela: contar pela posição na grade desalinha
+     a navegação no primeiro cartão sem arte. */
+  const artes = [];
+  const legendas = [];
+
   perfil.cartoes.forEach((uuid, i) => {
+    const c = mapa.get(uuid);
+    const nivel = (i + 1) * aCada;
+    const arte = c?.arteGrande || c?.arteLarga || "";
+    let aoAmpliar = null;
+    if (arte) {
+      const posicao = artes.length;
+      artes.push(arte);
+      legendas.push(`${c?.nome || "Cartão"} · nível ${nivel}`);
+      aoAmpliar = () => visorDeCartoes().abrir(artes, posicao, legendas);
+    }
     grade.append(figuraDeCartao(uuid, mapa, {
-      nivel: (i + 1) * aCada,
+      nivel,
       equipado: uuid === perfil.cartaoEquipado,
+      aoAmpliar,
     }));
   });
 
   return grade;
 }
 
+/* O mesmo visor das imagens dos mapas, montado no primeiro uso: quem nunca
+   amplia um cartão não paga por um diálogo pendurado no documento. */
+let visor = null;
+function visorDeCartoes() {
+  if (!visor) visor = montarVisor();
+  return visor;
+}
+
 /** Um cartão desenhado: arte, nome e o nível em que saiu. */
-function figuraDeCartao(uuid, mapa, { nivel, equipado = false } = {}) {
+function figuraDeCartao(uuid, mapa, { nivel, equipado = false, aoAmpliar = null } = {}) {
   const c = mapa.get(uuid);
+  const arte = c?.arteLarga
+    ? elemento("img", { class: "cartao__arte", src: c.arteLarga, alt: "", loading: "lazy" })
+    : elemento("div", { class: "cartao__arte cartao__arte--vazia" });
+  // A arte vira botão só onde ampliar faz sentido. Na área de escolha o
+  // clique no cartão equipa, e dois cliques diferentes no mesmo lugar
+  // deixariam a pessoa sem saber qual ia acontecer.
   return elemento("figure", { class: `cartao chf${equipado ? " cartao--equipado" : ""}` }, [
-    c?.arteLarga
-      ? elemento("img", { class: "cartao__arte", src: c.arteLarga, alt: "", loading: "lazy" })
-      : elemento("div", { class: "cartao__arte cartao__arte--vazia" }),
+    aoAmpliar
+      ? elemento("button", {
+          type: "button", class: "cartao__abrir", title: "Ver em tela grande",
+          "aria-label": `Ver ${c?.nome || "o cartão"} em tela grande`,
+          onclick: aoAmpliar,
+        }, [arte])
+      : arte,
     equipado ? elemento("span", { class: "cartao__marca", texto: "em uso" }) : null,
     elemento("figcaption", { class: "cartao__pe" }, [
       elemento("span", { class: "cartao__nome", texto: c?.nome || "Cartão" }),

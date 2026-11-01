@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { proximoIndice } from "../public/assets/js/visor.js";
+import { proximoIndice, limitarArraste } from "../public/assets/js/visor.js";
 
 test("anda para frente e para trás dentro da lista", () => {
   assert.equal(proximoIndice(0, 3, 1), 1);
@@ -44,4 +44,28 @@ test("abrir num índice qualquer é normalizado pela mesma conta", () => {
   // miniatura clicada sem confiar que ele esteja na faixa.
   assert.equal(proximoIndice(0, 3, 2), 2);
   assert.equal(proximoIndice(0, 3, 5), 2);
+});
+
+/* ------------------------------------------------- o limite do arraste -- */
+
+test("sem zoom não há para onde arrastar", () => {
+  // Em 1x a imagem cabe inteira na moldura: qualquer deslocamento deixaria
+  // uma faixa vazia de um lado.
+  assert.equal(limitarArraste(120, 600, 1), 0);
+  assert.equal(limitarArraste(-120, 600, 0.5), 0);
+});
+
+test("o arraste para na borda da imagem ampliada", () => {
+  // Em 2x sobra meia largura para cada lado: 600 * (2 - 1) / 2 = 300.
+  assert.equal(limitarArraste(1000, 600, 2), 300);
+  assert.equal(limitarArraste(-1000, 600, 2), -300);
+  assert.equal(limitarArraste(50, 600, 2), 50);
+});
+
+test("medida inválida devolve zero em vez de NaN", () => {
+  // Um NaN no transform não move nada e não acusa o motivo.
+  for (const medida of [0, -10, NaN, undefined, null]) {
+    assert.equal(limitarArraste(100, medida as number, 2.5), 0, `medida ${medida}`);
+  }
+  assert.equal(limitarArraste(NaN, 600, 2), 0);
 });

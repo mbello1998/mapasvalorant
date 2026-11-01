@@ -1607,6 +1607,13 @@ a.feed__item:hover::before { background: var(--sinal); }
   --corte: var(--corte-p); --chf-fundo: var(--aco-fundo); --chf-borda: var(--linha-fina);
   overflow: hidden; margin: 0;
 }
+/* A arte é um botão, não um link: ela abre o visor na própria página. O
+   reset tira o visual de botão e deixa só a imagem. */
+.cartao__abrir {
+  display: block; padding: 0; border: 0; background: none;
+  width: 100%; cursor: zoom-in;
+}
+.cartao__abrir:focus-visible { outline: 2px solid var(--luz); outline-offset: -2px; }
 .cartao__arte { display: block; width: 100%; aspect-ratio: 452 / 128; object-fit: cover; }
 .cartao__arte--vazia { background: var(--linha-fina); }
 .cartao__pe { display: grid; gap: 1px; padding: var(--e-2) var(--e-3); }
@@ -1955,19 +1962,21 @@ a.feed__item:hover::before { background: var(--sinal); }
 .ponto__fotos img { width: 100%; height: auto; border: var(--borda) solid var(--linha-fina); display: block; }
 
 /* ------------------------------------------------------------------- visor -- */
-/* Sobreposição das imagens do ponto. Acima do trilho (100) e do link de pulo
-   (200), senão a navegação lateral apareceria por cima da imagem. */
+/* Sobreposição das imagens: do ponto, na página dos mapas, e do cartão de
+   jogador, no painel do perfil. É um <dialog> modal, e não uma camada com
+   z-index: o painel do perfil também é modal, e ficaria por cima de qualquer
+   número que se pusesse aqui. Modal sobre modal empilha na ordem de abertura,
+   e de quebra o diálogo trava a rolagem do fundo sem precisar de classe no
+   corpo do documento. */
 .visor {
-  position: fixed; inset: 0; z-index: 300;
+  position: fixed; inset: 0; margin: 0; border: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
   display: grid; place-items: center;
   padding: var(--e-4);
-  background: rgb(0 0 0 / 0.85);
+  background: rgb(0 0 0 / 0.85); color: var(--luz);
 }
-.visor[hidden] { display: none; }
-
-/* Trava a rolagem do fundo enquanto o visor está aberto: rolar a página atrás
-   de uma sobreposição desorienta e faz perder o lugar na lista. */
-body.sem-rolagem { overflow: hidden; }
+.visor:not([open]) { display: none; }
+.visor::backdrop { background: rgb(0 0 0 / 0.6); }
 
 .visor__palco {
   position: relative;
@@ -1978,7 +1987,14 @@ body.sem-rolagem { overflow: hidden; }
   max-width: 100%; max-height: 78vh;
   width: auto; height: auto;
   border: var(--borda) solid var(--linha-fina);
+  cursor: zoom-in;
+  /* O arraste move a imagem, não seleciona nem abre o menu de imagem. */
+  user-select: none; -webkit-user-drag: none;
 }
+/* Ampliada, a imagem é arrastada por nós: `touch-action: none` é o que impede
+   o navegador de interpretar o mesmo dedo como rolagem da página atrás. */
+.visor__imagem--zoom { cursor: grab; touch-action: none; }
+.visor__imagem--zoom:active { cursor: grabbing; }
 .visor__contador {
   font-size: var(--t-s); color: var(--tinta-2);
   font-variant-numeric: tabular-nums; /* o número não dança ao trocar de passo */
@@ -1998,35 +2014,35 @@ body.sem-rolagem { overflow: hidden; }
 }
 .visor__botao:hover { border-color: var(--luz); }
 .visor__botao[hidden] { display: none; }
+.visor__botao:focus-visible { outline: 2px solid var(--latao); outline-offset: 2px; }
+/* Os ícones são SVG montados pelo visor: nada de fonte de ícone nem de
+   arquivo externo, que atrasaria a primeira abertura. */
+.visor__botao svg { display: block; }
 
-/* As setas desenhadas em CSS: sem dependência de fonte de ícone nem de SVG
-   externo, que atrasaria a primeira abertura. */
-.visor__botao--anterior, .visor__botao--proxima { top: calc(39vh - 22px); }
-.visor__botao--anterior { left: calc(-1 * var(--e-5)); }
-.visor__botao--proxima { right: calc(-1 * var(--e-5)); }
-.visor__botao--fechar { top: calc(-1 * var(--e-5)); right: 0; }
-
-.visor__botao::before {
-  content: ""; width: 10px; height: 10px;
-  border-top: 2px solid currentColor; border-right: 2px solid currentColor;
+/* Os quatro botões ficam presos na tela, não no palco. O palco tem a largura
+   da imagem, e a arte de um cartão é estreita: setas postas fora dele caíam
+   em cima do desenho. Na borda da tela elas ficam no mesmo lugar seja qual
+   for o formato da imagem. */
+.visor__botao--anterior, .visor__botao--proxima {
+  position: fixed; top: 50%; margin-top: -22px;
 }
-.visor__botao--anterior::before { transform: translateX(2px) rotate(-135deg); }
-.visor__botao--proxima::before { transform: translateX(-2px) rotate(45deg); }
-/* O X é a mesma forma girada, com a segunda haste num ::after. */
-.visor__botao--fechar::before,
-.visor__botao--fechar::after {
-  content: ""; position: absolute;
-  width: 16px; height: 0; border-top: 2px solid currentColor; border-right: 0;
-}
-.visor__botao--fechar::before { transform: rotate(45deg); }
-.visor__botao--fechar::after { transform: rotate(-45deg); }
+.visor__botao--anterior { left: var(--e-3); }
+.visor__botao--proxima { right: var(--e-3); }
+/* Fechar e lupa ficam presos no canto da tela, não no canto do palco: a arte
+   de um cartão é alta e empurraria os dois para fora da área visível. */
+.visor__botao--fechar { position: fixed; top: var(--e-3); right: var(--e-3); }
+/* A lupa fica à esquerda do Fechar: 44px do botão mais um respiro. */
+.visor__botao--lupa { position: fixed; top: var(--e-3); right: calc(44px + var(--e-3) + var(--e-2)); }
+.visor__botao--lupa[aria-pressed="true"] { border-color: var(--luz); }
 
-/* Em tela estreita não há margem para as setas ao lado da imagem: elas descem
-   para dentro do quadro, nas bordas. */
+/* Em tela estreita os botões chegam mais perto da borda: o espaço que sobra
+   ao lado da imagem é pouco, e um respiro menor evita que eles subam para
+   cima dela. */
 @media (max-width: 720px) {
   .visor__botao--anterior { left: var(--e-2); }
   .visor__botao--proxima { right: var(--e-2); }
-  .visor__botao--fechar { top: var(--e-2); right: var(--e-2); }
+  .visor__botao--fechar { right: var(--e-2); }
+  .visor__botao--lupa { right: calc(44px + var(--e-2) + var(--e-2)); }
 }
 .ponto__video { color: var(--sinal-tinta); font-weight: 600; font-size: var(--t-s); }
 .ponto__fonte { font-size: var(--t-s); color: var(--tinta-3); overflow-wrap: anywhere; }
