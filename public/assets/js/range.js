@@ -193,6 +193,19 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
   };
 
   let quadro = 0;
+
+  /* Mesma ideia do laço: `comecar()` leva segundos até acender, e quem trocou
+     de tela no meio não pode ter o laço aceso depois nem a sessão publicada. */
+  let geracao = 0;
+
+  /* O que fica preso em `window` e `document` sobrevive à troca de tela, ao
+     contrário do que está preso no canvas. Guardar o cancelamento é o que
+     permite ao estande sair de cena inteiro. */
+  const limpezas = [];
+  const ouvir = (alvo, evento, fn) => {
+    alvo.addEventListener(evento, fn);
+    limpezas.push(() => alvo.removeEventListener(evento, fn));
+  };
   let ultimoTique = 0;
   let mira = null;
 
@@ -787,6 +800,8 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
 
   async function comecar() {
     if (estado.rodando) return;
+    const minhaGeracao = geracao;
+    const saiu = () => minhaGeracao !== geracao;
 
     elementos.resultado.textContent = "";
     limparFimDeTreino();
@@ -796,8 +811,10 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
     // isso o contexto e os dois arquivos vêm antes de qualquer espera.
     acordarAudio();
     await Promise.all([prepararArma(ARMA.nome), prepararMusica(MUSICA_CARGA)]);
+    if (saiu()) return;
 
     await entrarNoExercicio();
+    if (saiu()) return;
 
     secao.dataset.luz = "acesa";
     lerPaleta();
@@ -812,6 +829,7 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
     }
     elementos.contagem.hidden = true;
 
+    if (saiu()) return;
     Object.assign(estado, {
       rodando: true, alvos: [], acertos: 0, tiros: 0, reacoes: [],
       tempoEmAlvo: 0, aliadosClicados: 0, comecouEm: performance.now(),
@@ -1280,7 +1298,7 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
     estado.mouse.x = x; estado.mouse.y = y; estado.mouse.dentro = true;
     atirar(ev);
   });
-  window.addEventListener("pointerup", () => { estado.mouse.pressionado = false; });
+  ouvir(window, "pointerup", () => { estado.mouse.pressionado = false; });
   tela.addEventListener("pointermove", (ev) => {
     const { x, y } = coordenadas(ev);
     estado.mouse.x = x; estado.mouse.y = y; estado.mouse.dentro = true;
@@ -1292,16 +1310,28 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
   tela.addEventListener("contextmenu", (ev) => { if (estado.rodando) ev.preventDefault(); });
 
   // Sair da aba no meio da sessão encerra: um resultado com pausa não vale.
-  document.addEventListener("visibilitychange", () => {
+  ouvir(document, "visibilitychange", () => {
     if (document.hidden && estado.rodando) encerrar();
   });
 
-  window.addEventListener("resize", redimensionar);
-  window.addEventListener("resize", recentralizar);
+  ouvir(window, "resize", redimensionar);
+  ouvir(window, "resize", recentralizar);
   redimensionar();
   trocarModo(modoAtual);
 
-  return { trocarModo, encerrar, get modoAtual() { return modoAtual; } };
+  /**
+   * Tirar o estande de cena. Não é `encerrar()`: quem sai da tela no meio de
+   * uma sessão não quer o resultado dela registrado, só quer o laço e os
+   * ouvintes parados.
+   */
+  function parar() {
+    geracao += 1;
+    estado.rodando = false;
+    cancelAnimationFrame(quadro);
+    for (const limpar of limpezas.splice(0)) limpar();
+  }
+
+  return { trocarModo, encerrar, parar, get modoAtual() { return modoAtual; } };
 }
 
 /**

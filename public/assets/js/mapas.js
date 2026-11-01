@@ -18,7 +18,7 @@ import {
 
 const CHAVE_MAPA = "estande.mapa.v1";
 
-const estado = {
+const estadoLimpo = () => ({
   conteudo: null,
   mapas: [],
   agentes: [],
@@ -36,7 +36,9 @@ const estado = {
   destino: null,       // { x, y } onde a util cai
   selecionado: null,   // id do ponto aberto no painel
   avisos: [],          // o que falhou ao carregar mas não impede a página
-};
+});
+
+const estado = estadoLimpo();
 
 let minimapa = null;
 // Um visor para a página inteira, montado no início. Recriá-lo a cada clique
@@ -511,7 +513,7 @@ async function carregarDados() {
   escolherMapa(lerMapaSalvo());
 }
 
-async function iniciar() {
+export async function iniciar() {
   const { conteudo } = await carregarConteudo();
   estado.conteudo = conteudo;
   vestirPagina(conteudo, { aqui: "mapas.html", titulo: "Sala de Mapas" });
@@ -529,4 +531,14 @@ async function iniciar() {
   await carregarDados();
 }
 
-iniciar();
+/** Sair da tela: zera a escolha de mapa, agente e ponto, que de outro modo
+ *  voltariam marcados na próxima visita. */
+export function desmontar() {
+  visor?.desmontar();
+  visor = null;
+  Object.assign(estado, estadoLimpo());
+}
+
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();

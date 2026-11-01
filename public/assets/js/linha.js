@@ -114,15 +114,37 @@ const gravar = (chave, valor) => {
 
 /* ============================================================== o jogo === */
 
-const tela = $("tela");
-const ctx = tela.getContext("2d", { alpha: false });
+/* O canvas e a seção são apanhados a cada visita, dentro de `iniciar()`, e
+   não aqui em cima. Dentro da casca o módulo é importado uma vez só: preso ao
+   nó da primeira visita, o jogo passaria a desenhar num canvas que a troca de
+   tela já tinha removido, e a segunda entrada era uma arena em branco que não
+   respondia a clique. */
+let tela = null;
+let ctx = null;
 // As luzes acendem só no campo. Invertendo o <main> inteiro, o preparo e o
 // cabeçalho iriam junto — e não é isso que um estande faz.
-const secao = $("campo");
+let secao = null;
 
 let larg = 1000, alt = 600;
 let paleta = {};
 let quadro = 0, ultimoTique = 0;
+
+/* Sobe a cada saída da tela. `comecar()` é uma sequência de vários segundos —
+   preparar arma, tela de carga, contagem — e no fim acende o laço. Quem saiu
+   no meio dela não pode ter o laço aceso depois, nem a rodada publicada: o
+   número tirado no começo diz se ainda é a mesma visita. */
+let geracao = 0;
+
+/* O canvas sai do DOM junto com a tela, mas o que ficou preso em `window` e
+   `document` não sai — e o laço de animação menos ainda. */
+const limpezas = [];
+const ouvir = (alvo, evento, fn) => {
+  alvo.addEventListener(evento, fn);
+  limpezas.push(() => alvo.removeEventListener(evento, fn));
+};
+
+/** A faixa da tela de carga, para ela não tocar sozinha depois da saída. */
+let musicaDaCarga = null;
 
 const jogo = {
   rodando: false,
@@ -800,6 +822,7 @@ async function entrarNoMapa() {
   // A faixa, se houver. Sem ela, o arrasto sintetizado assume — a tela nunca
   // entra em silêncio por causa de um arquivo faltando.
   const musica = tocarCarregamento();
+  musicaDaCarga = musica;
   if (!musica) somCarregando();
 
 
@@ -816,6 +839,7 @@ async function entrarNoMapa() {
 
   // A faixa some junto com a tela, não invade a rodada.
   musica?.parar(0.45);
+  musicaDaCarga = null;
   somEntrou();
   tela.dataset.saindo = "sim";
   await new Promise((r) => setTimeout(r, rapido ? 60 : 420));
@@ -824,6 +848,9 @@ async function entrarNoMapa() {
 }
 
 async function comecar() {
+  const minhaGeracao = geracao;
+  const saiu = () => minhaGeracao !== geracao;
+
   if (jogo.rodando) return;
   if (!prontoParaJogar()) {
     $("resultado").textContent = "Escolha uma arma com estatísticas antes de começar.";
@@ -843,7 +870,9 @@ async function comecar() {
   $("btnComecar").disabled = true;
 
   await prepararArteDaArma();
+  if (saiu()) return;
   await entrarNoMapa();
+  if (saiu()) return;
 
   secao.dataset.luz = "acesa";
   lerPaleta();
@@ -856,6 +885,7 @@ async function comecar() {
     await new Promise((r) => setTimeout(r, rapido ? 220 : 520));
   }
   $("contagem").hidden = true;
+  if (saiu()) return;
 
   const duracao = Number(estado.conteudo?.linha?.duracao) > 0
     ? Number(estado.conteudo.linha.duracao) : 60;
@@ -1193,23 +1223,28 @@ function pilula(rotulo, ativo, aoClicar) {
 
 /* ---------------------------------------------------------------- início -- */
 
-async function iniciar() {
+export async function iniciar() {
+  // Antes de tudo: esta visita tem o seu próprio canvas.
+  tela = $("tela");
+  ctx = tela.getContext("2d", { alpha: false });
+  secao = $("campo");
+
   const { conteudo } = await carregarConteudo();
   estado.conteudo = conteudo;
   vestirPagina(conteudo, { aqui: "linha.html", titulo: conteudo.linha?.titulo ?? "A Linha de Tiro" });
   carregarConta().then(montarBotaoDeConta);
 
   redimensionar();
-  window.addEventListener("resize", redimensionar);
+  ouvir(window, "resize", redimensionar);
   // Sair com Esc não passa pelo nosso botão: o canvas tem que remedir sozinho.
-  document.addEventListener("fullscreenchange", () => {
+  ouvir(document, "fullscreenchange", () => {
     moldura()?.classList.toggle("campo__tela--cheia", emTelaCheia());
     acomodarTelaDeCarga();
     redimensionar();
   });
   montarControleDeSom();
   repintarInterruptor = montarInterruptor($("autoRanking"));
-  aoMudarConta(() => repintarInterruptor?.());
+  limpezas.push(aoMudarConta(() => repintarInterruptor?.()));
 
   // Decodificar a faixa leva um instante. Fazer isso agora, sem esperar,
   // tira esse atraso do primeiro clique em "Acender as luzes". O contexto de
@@ -1332,7 +1367,7 @@ async function iniciar() {
   tela.addEventListener("contextmenu", (ev) => { if (jogo.rodando) ev.preventDefault(); });
 
   // Sair da aba no meio da rodada encerra: resultado com pausa não vale.
-  document.addEventListener("visibilitychange", () => {
+  ouvir(document, "visibilitychange", () => {
     if (document.hidden && jogo.rodando) encerrar();
   });
 
@@ -1340,4 +1375,19 @@ async function iniciar() {
   desenharRepouso();
 }
 
-iniciar();
+/**
+ * Sair da tela. Não chama `encerrar()`: quem troca de tela no meio de uma
+ * rodada não quer o resultado dela contado, quer o laço parado e o silêncio.
+ */
+export function desmontar() {
+  geracao += 1;
+  jogo.rodando = false;
+  cancelAnimationFrame(quadro);
+  musicaDaCarga?.parar(0.1);
+  musicaDaCarga = null;
+  for (const limpar of limpezas.splice(0)) limpar();
+}
+
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();

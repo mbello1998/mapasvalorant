@@ -33,7 +33,12 @@ let dialogo = null;
 let resolverPendente = null;
 
 function montarDialogo() {
-  if (dialogo) return dialogo;
+  if (dialogo) {
+    // A troca de tela varre o corpo do documento, e leva junto o que foi
+    // pendurado nele. O nó guardado continua bom: basta pendurar de novo.
+    if (!dialogo.isConnected) document.body.append(dialogo);
+    return dialogo;
+  }
 
   const form = elemento("form", { class: "gaveta__caixa chf", method: "dialog", id: "formConta" });
   dialogo = elemento("dialog", { class: "gaveta gaveta--conta", "aria-labelledby": "contaTit" }, [form]);
@@ -229,9 +234,15 @@ export function mostrarBoasVindas() {
 /* ------------------------------------------------------- botão no topo --- */
 
 /** O estado da conta no trilho: entrar, ou o apelido com a opção de sair. */
+let botaoMontado = false;
+
 export function montarBotaoDeConta() {
   const alvo = $("contaTrilho");
-  if (!alvo) return;
+  // Idempotente: o trilho fica na casca e não é trocado, e esta função assina
+  // `aoMudarConta` por dentro sem guardar o cancelamento — chamar a cada troca
+  // de tela empilharia um assinante por visita.
+  if (!alvo || botaoMontado) return;
+  botaoMontado = true;
 
   const pintar = () => {
     alvo.replaceChildren();

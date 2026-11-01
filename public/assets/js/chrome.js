@@ -1,6 +1,8 @@
 // O que toda página do site tem em comum: tema, identidade, trilho de navegação
 // e rodapé — todos saindo do conteúdo que o painel edita.
 
+import { CHAVE_MARCA, precisaDesviar, telaDoHref } from "./roteiro.js";
+
 export const $ = (id) => document.getElementById(id);
 
 /** Lê "hero.ctaPrimario.rotulo" dentro do objeto de conteúdo. */
@@ -196,6 +198,31 @@ export function montarAssinatura() {
       </span>
     </a>`);
 }
+
+/* ------------------------------------------------------------- desvio ---- */
+
+/**
+ * Quem chegou por um link antigo — `/arsenal.html` — guarda a tela pedida e é
+ * mandado para a raiz, que é o único endereço que o site mostra. A página
+ * solta continua existindo e funcionando: ela é a rede de quem está sem
+ * JavaScript e o que os buscadores leem.
+ */
+export function desviarParaRaiz() {
+  if (!precisaDesviar(location.pathname)) return false;
+  try {
+    sessionStorage.setItem(CHAVE_MARCA, telaDoHref(location.href, location.origin) ?? "");
+  } catch {
+    // Navegação restrita bloqueia o cofre: o desvio continua valendo, a casca
+    // só vai abrir no Estande em vez da tela pedida.
+  }
+  location.replace("/");
+  return true;
+}
+
+// Na importação, e não dentro de `vestirPagina`, que só roda depois de o
+// conteúdo chegar do servidor: aqui o desvio acontece antes de a página
+// antiga aparecer na tela. Na casca e no Painel não há o que desviar.
+if (typeof document !== "undefined") desviarParaRaiz();
 
 /** Tudo que toda página faz igual, numa chamada. */
 export function vestirPagina(conteudo, { aqui, titulo } = {}) {

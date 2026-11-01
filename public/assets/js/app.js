@@ -3,6 +3,8 @@ import {
   carregarNoticias, gradienteAgente,
 } from "./api.js";
 import { montarEstande } from "./range.js";
+import { guardarPresenca, lembrarPresenca } from "./presenca.js";
+import { cofre } from "./roteiro.js";
 import {
   $, elemento, texto, comoData, semMarcacao, vestirPagina,
 } from "./chrome.js";
@@ -376,6 +378,29 @@ function montarFeed(c, coleta) {
 
   feed.replaceChildren();
   for (const item of todos) feed.append(cartaoFeed(item));
+}
+
+/* -------------------------------------------------------------- limpeza -- */
+
+/* O que precisa ser desligado quando a tela sai. Dentro da casca o módulo fica
+   na memória: um cronômetro esquecido aqui continuaria batendo ponto e
+   repintando um ranking que não está mais na tela. */
+const limpezas = [];
+
+/** O estande montado nesta visita. Vive no módulo, e não dentro de
+ *  `iniciar()`, porque é o `desmontar()` que precisa alcançá-lo. */
+let estande = null;
+
+/** `setInterval` que sabe se desligar. */
+function cadaTanto(fn, ms) {
+  const id = setInterval(fn, ms);
+  limpezas.push(() => clearInterval(id));
+}
+
+/** Ouvinte que sabe se desligar. */
+function ouvir(alvo, evento, fn) {
+  alvo.addEventListener(evento, fn);
+  limpezas.push(() => alvo.removeEventListener(evento, fn));
 }
 
 /* --------------------------------------------------------------- agentes -- */
@@ -969,8 +994,8 @@ function acompanharRanking() {
   };
 
   atualizar();
-  setInterval(atualizar, 60_000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) atualizar(); });
+  cadaTanto(atualizar, 60_000);
+  ouvir(document, "visibilitychange", () => { if (!document.hidden) atualizar(); });
 }
 
 /* -------------------------------------------------------------- presença -- */
@@ -997,38 +1022,58 @@ const PONTO_MS = 45_000;
  * O último valor lido fica em `estado.online` para que qualquer remontagem da
  * grade ao vivo já nasça com o número certo, em vez de piscar um travessão.
  */
-function acompanharPresenca() {
+function acompanharPresenca(adiantada) {
   const pintar = (r) => {
     if (!r) return;
-    estado.online = { online: r.online, hoje: r.hoje ?? r.online };
+    // A leitura adiantada sai antes de o ponto desta aba chegar ao servidor,
+    // então ela ainda não conta quem está lendo. "Agora no site: 0" com
+    // alguém olhando a tela seria falso — há pelo menos esta aba.
+    const online = Number.isFinite(r.online) ? Math.max(r.online, 1) : r.online;
+    estado.online = { online, hoje: r.hoje ?? online };
+    guardarPresenca(cofre("localStorage"), estado.online);
     const agora = document.querySelector('[data-online="1"] .ficha__val');
     if (agora) agora.textContent = numeroOuTraco(estado.online.online);
     const hoje = document.querySelector('[data-hoje="1"] .ficha__val');
     if (hoje) hoje.textContent = numeroOuTraco(estado.online.hoje);
   };
 
+  // A leitura que saiu na frente pinta assim que responder.
+  adiantada?.then(pintar);
+
   const bater = () => { if (!document.hidden) baterPonto().then(pintar); };
   const ler = () => { if (!document.hidden) verPresenca().then(pintar); };
 
   bater();
-  setInterval(bater, PONTO_MS);
-  setInterval(ler, LEITURA_MS);
+  cadaTanto(bater, PONTO_MS);
+  cadaTanto(ler, LEITURA_MS);
   // Quem volta para a aba vê o número de agora, não o de quando saiu: bate o
   // ponto na hora, porque a marca dele pode ter saído da janela enquanto a
   // aba estava escondida.
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) bater(); });
+  ouvir(document, "visibilitychange", () => { if (!document.hidden) bater(); });
 }
 
 /* ----------------------------------------------------------------- início */
 
-async function iniciar() {
+export async function iniciar() {
+  // A leitura de presença sai na frente, em paralelo com o conteúdo. Esperar
+  // o conteúdo para só então pedir o número somava meio segundo de travessão
+  // na tela, e um não depende do outro.
+  const presencaPronta = verPresenca();
+  // A grade ao vivo é a casa dos dois números: quanto antes ela puder nascer,
+  // antes eles aparecem. O pedido não depende do conteúdo, só a pintura.
+  const aoVivoPronto = carregarAoVivo();
+
+  // E o que ficou guardado da última visita já vale como primeiro desenho:
+  // quem volta vê número, não travessão, enquanto a resposta nova não chega.
+  estado.online = lembrarPresenca(cofre("localStorage")) ?? estado.online;
+
   const { conteudo, reserva } = await carregarConteudo();
 
   vestirPagina(conteudo, { aqui: "index.html" });
   carregarConta().then(() => {
     montarBotaoDeConta();
     const repintar = montarInterruptor($("autoRanking"));
-    aoMudarConta(() => repintar());
+    limpezas.push(aoMudarConta(() => repintar()));
   });
   mostrarBoasVindas();
   montarCta(conteudo);
@@ -1043,7 +1088,6 @@ async function iniciar() {
   const repintarMira = montarPainelDeMira();
 
   // O estande precisa da lista de modos antes de montar.
-  let estande;
   const modos = montarModos(conteudo, (id) => estande?.trocarModo(id));
   estande = montarEstande({
     secao: $("estande"),
@@ -1091,8 +1135,8 @@ async function iniciar() {
   // As fontes remotas são independentes: uma falhar não segura as outras.
   estado.jogadores = conteudo.jogadores;
   estado.presenca = conteudo.presenca;
-  carregarAoVivo().then(montarAoVivo);
-  acompanharPresenca();
+  aoVivoPronto.then(montarAoVivo);
+  acompanharPresenca(presencaPronta);
 
   carregarNoticias().then((coleta) => montarFeed(conteudo, coleta));
 
@@ -1119,4 +1163,16 @@ async function iniciar() {
     });
 }
 
-iniciar();
+/** Sair da tela: desliga os três cronômetros, os ouvintes de visibilidade e a
+ *  assinatura de conta. Sem isto, a segunda visita roda tudo em dobro. */
+export function desmontar() {
+  // O estande é desta tela: o canvas sai do DOM com ela, mas o laço e os
+  // ouvintes de janela que ele prendeu continuariam vivos.
+  estande?.parar();
+  estande = null;
+  for (const limpar of limpezas.splice(0)) limpar();
+}
+
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();

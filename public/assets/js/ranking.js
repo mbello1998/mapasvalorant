@@ -21,7 +21,12 @@ const NOMES_MODO = {
   linha: "Linha de Tiro",
 };
 
-const estado = { patentes: [], tabela: null, modoAberto: "gridshot", meus: {} };
+const estadoLimpo = () => ({ patentes: [], tabela: null, modoAberto: "gridshot", meus: {} });
+
+const estado = estadoLimpo();
+
+/** O que precisa ser desligado quando a tela sai. */
+const limpezas = [];
 
 const ler = (chave, reserva) => {
   try { return JSON.parse(localStorage.getItem(chave) ?? "null") ?? reserva; }
@@ -176,56 +181,6 @@ async function abrirEnvio(modo, registro) {
   $("gaveta").showModal();
 }
 
-$("envioCancelar").addEventListener("click", () => $("gaveta").close());
-
-$("formEnvio").addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  if (!envioPendente) return;
-
-  const erro = $("envioErro");
-  const botao = $("envioConfirmar");
-  erro.hidden = true;
-  botao.disabled = true;
-
-  const { modo, registro } = envioPendente;
-
-  // A duração e os tiros vão junto porque o servidor confere a coerência
-  // antes de aceitar: sessão curta ou sem acerto não entra.
-  const corpo = {
-    modo,
-    valor: registro.valor,
-    precisao: registro.precisao,
-    detalhe: registro.detalhe ?? null,
-    duracao: registro.bruto?.duracao ?? (modo === "linha" ? 60 : 30),
-    tiros: registro.bruto?.tiros ?? null,
-    // Na Linha de Tiro o que conta como "acerto" para a conferência é o abate.
-    acertos: (modo === "linha" ? registro.bruto?.abates : registro.bruto?.acertos) ?? null,
-  };
-
-  try {
-    const r = await publicarNoRanking(corpo);
-    $("gaveta").close();
-    estado.tabela = await carregarRanking();
-    estado.modoAberto = modo;
-    pintarModos();
-    pintarTabela();
-    $("rank").scrollIntoView({ behavior: "smooth", block: "start" });
-    avisarPosicao(r);
-  } catch (e) {
-    if (e.precisaEntrar) {
-      // A sessão expirou entre abrir o diálogo e enviar.
-      $("gaveta").close();
-      const conta = await pedirConta();
-      if (conta) { envioPendente = { modo, registro }; abrirEnvio(modo, registro); }
-      return;
-    }
-    erro.hidden = false;
-    erro.replaceChildren(elemento("strong", { texto: "Não deu: " }), document.createTextNode(e.message));
-  } finally {
-    botao.disabled = false;
-  }
-});
-
 function avisarPosicao(r) {
   const alvo = $("rankQuando");
   alvo.textContent = r.posicao
@@ -358,11 +313,67 @@ function valorParaIndice(modo, indiceAlvo) {
 
 /* ---------------------------------------------------------------- início -- */
 
-async function iniciar() {
+/** Os botões da gaveta de envio. Moram aqui, e não no topo do arquivo, porque
+ *  dentro da casca o arquivo é importado antes de a tela existir no DOM. */
+function ligarGavetaDeEnvio() {
+  $("envioCancelar").addEventListener("click", () => $("gaveta").close());
+
+  $("formEnvio").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if (!envioPendente) return;
+
+    const erro = $("envioErro");
+    const botao = $("envioConfirmar");
+    erro.hidden = true;
+    botao.disabled = true;
+
+    const { modo, registro } = envioPendente;
+
+    // A duração e os tiros vão junto porque o servidor confere a coerência
+    // antes de aceitar: sessão curta ou sem acerto não entra.
+    const corpo = {
+      modo,
+      valor: registro.valor,
+      precisao: registro.precisao,
+      detalhe: registro.detalhe ?? null,
+      duracao: registro.bruto?.duracao ?? (modo === "linha" ? 60 : 30),
+      tiros: registro.bruto?.tiros ?? null,
+      // Na Linha de Tiro o que conta como "acerto" para a conferência é o abate.
+      acertos: (modo === "linha" ? registro.bruto?.abates : registro.bruto?.acertos) ?? null,
+    };
+
+    try {
+      const r = await publicarNoRanking(corpo);
+      $("gaveta").close();
+      estado.tabela = await carregarRanking();
+      estado.modoAberto = modo;
+      pintarModos();
+      pintarTabela();
+      $("rank").scrollIntoView({ behavior: "smooth", block: "start" });
+      avisarPosicao(r);
+    } catch (e) {
+      if (e.precisaEntrar) {
+        // A sessão expirou entre abrir o diálogo e enviar.
+        $("gaveta").close();
+        const conta = await pedirConta();
+        if (conta) { envioPendente = { modo, registro }; abrirEnvio(modo, registro); }
+        return;
+      }
+      erro.hidden = false;
+      erro.replaceChildren(elemento("strong", { texto: "Não deu: " }), document.createTextNode(e.message));
+    } finally {
+      botao.disabled = false;
+    }
+  });
+}
+
+export async function iniciar() {
   const { conteudo } = await carregarConteudo();
   vestirPagina(conteudo, { aqui: "ranking.html", titulo: conteudo.ranking?.titulo ?? "Ranking" });
   await carregarConta();
   montarBotaoDeConta();
+
+  ligarGavetaDeEnvio();
 
   const pintarCartoes = () => montarEscolhaDeCartoes($("cartoesArea"), {
     // Trocar de cartão muda o que a tabela mostra no passar do mouse.
@@ -370,10 +381,10 @@ async function iniciar() {
   });
   pintarCartoes();
 
-  aoMudarConta(() => {
+  limpezas.push(aoMudarConta(() => {
     if (estado.tabela) pintarTabela();
     pintarCartoes();
-  });
+  }));
 
   const [patentes, tabela] = await Promise.allSettled([carregarPatentes(), carregarRanking()]);
 
@@ -385,8 +396,10 @@ async function iniciar() {
 
   estado.tabela = tabela.status === "fulfilled" ? tabela.value : null;
 
-  // A tabela acompanha quem publicar enquanto a página está aberta.
-  setInterval(async () => {
+  // A tabela acompanha quem publicar enquanto a tela está aberta. O
+  // cancelamento entra nas limpezas: dentro da casca, um cronômetro por visita
+  // seguiria batendo em /api/ranking para sempre, de qualquer outra tela.
+  const relogio = setInterval(async () => {
     if (document.hidden) return;
     try {
       estado.tabela = await carregarRanking();
@@ -394,6 +407,7 @@ async function iniciar() {
       pintarTabela();
     } catch { /* uma falha de rede não precisa apagar o que já está na tela */ }
   }, 60_000);
+  limpezas.push(() => clearInterval(relogio));
 
   pintarMeuElo();
   pintarModos();
@@ -402,4 +416,14 @@ async function iniciar() {
   if (estado.patentes.length) pintarEscala();
 }
 
-iniciar();
+/** Sair da tela: cancela a assinatura de conta e zera o estado, para a volta
+ *  não começar com a tabela e o modo da visita anterior. */
+export function desmontar() {
+  for (const limpar of limpezas.splice(0)) limpar();
+  envioPendente = null;
+  Object.assign(estado, estadoLimpo());
+}
+
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();
