@@ -571,6 +571,41 @@ a.feed__item:hover::before { background: var(--sinal); }
 .rodape__links { display: flex; flex-direction: column; gap: var(--e-2); align-items: flex-start; }
 .rodape__links a { font-size: var(--t-s); font-weight: 600; text-decoration: none; color: var(--tinta-2); }
 .rodape__links a:hover { color: var(--sinal-tinta); text-decoration: underline; text-underline-offset: 3px; }
+/* Assinatura de autoria. Ocupa a largura toda embaixo das duas colunas,
+   separada por um fio, para ser credito e nao mais um link do rodape. */
+.assinatura {
+  grid-column: 1 / -1;
+  display: inline-flex; align-items: center; gap: var(--e-3);
+  width: fit-content; text-decoration: none;
+  border-top: var(--borda) solid var(--linha-fina);
+  padding-top: var(--e-4); margin-top: var(--e-2);
+}
+.assinatura__selo {
+  --corte: var(--corte-p); --chf-fundo: var(--aco-alto); --chf-borda: var(--linha);
+  display: grid; place-items: center;
+  width: 54px; height: 54px; flex: 0 0 auto;
+  color: var(--luz);
+  transition: transform 160ms ease;
+}
+.assinatura__selo svg { width: 34px; height: auto; display: block; }
+.assinatura:hover .assinatura__selo,
+.assinatura:focus-visible .assinatura__selo {
+  --chf-borda: var(--sinal); --chf-anel: 2px; transform: translateY(-2px);
+}
+.assinatura__ficha { display: grid; gap: 1px; }
+.assinatura__nome {
+  font-family: var(--fonte-display); font-weight: 700; font-size: var(--t-b);
+  color: var(--luz); line-height: 1.15;
+}
+.assinatura__papel { font-size: var(--t-xs); color: var(--tinta-2); }
+.assinatura__arroba { font-size: var(--t-xs); color: var(--tinta-3); }
+.assinatura:hover .assinatura__arroba,
+.assinatura:focus-visible .assinatura__arroba { color: var(--sinal-tinta); }
+@media (prefers-reduced-motion: reduce) {
+  .assinatura__selo { transition: none; }
+  .assinatura:hover .assinatura__selo,
+  .assinatura:focus-visible .assinatura__selo { transform: none; }
+}
 
 
 /* --------------------------------------------------------------- avisos --- */

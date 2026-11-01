@@ -161,10 +161,47 @@ export function montarRodape(c) {
   }
 }
 
+/* ----------------------------------------------------------- assinatura --- */
+
+/* O monograma e desenhado aqui, nao e imagem: fica nitido em qualquer tela e
+   herda a cor do tema pelo currentColor. As duas letras tem a mesma altura e o
+   mesmo peso; o canto cortado do M embaixo a esquerda e o do B em cima a
+   direita repetem o chanfro do proprio selo, e o risco vermelho fecha na
+   diagonal. */
+const SELO_MB = `
+<svg viewBox="0 0 70 50" aria-hidden="true" focusable="false">
+  <path fill="currentColor"
+        d="M6 10 H13 L21 20 L29 10 H36 V38 H29 V22.5 L21 33 L13 22.5 V38 H9.5 L6 34.5 Z"/>
+  <path fill="currentColor" fill-rule="evenodd"
+        d="M42 10 H57 L64 17 V20 L60 24 L64 28 V31 L57 38 H42 Z
+           M49 16.5 H55 L57 18.5 V20.5 L55 22 H49 Z
+           M49 26 H55 L57 28 V30 L55 31.5 H49 Z"/>
+  <path fill="var(--sinal)" d="M11 43 H64 L58 48 H5 Z"/>
+</svg>`;
+
+/** Credito de autoria do site. Fixo no codigo: nao e link administravel. */
+export function montarAssinatura() {
+  const grade = document.querySelector(".rodape__grade");
+  if (!grade || grade.querySelector(".assinatura")) return;
+
+  grade.insertAdjacentHTML("beforeend", `
+    <a class="assinatura" href="https://www.instagram.com/matheus.b.p"
+       target="_blank" rel="noopener"
+       aria-label="MB Mbello no Instagram, criação e desenvolvimento do site">
+      <span class="assinatura__selo chf">${SELO_MB}</span>
+      <span class="assinatura__ficha">
+        <span class="assinatura__nome">MB Mbello</span>
+        <span class="assinatura__papel">Criação e desenvolvimento</span>
+        <span class="assinatura__arroba">@matheus.b.p</span>
+      </span>
+    </a>`);
+}
+
 /** Tudo que toda página faz igual, numa chamada. */
 export function vestirPagina(conteudo, { aqui, titulo } = {}) {
   aplicarTema(conteudo.tema);
   aplicarIdentidade(conteudo, { titulo });
   montarNav(conteudo.nav, aqui);
   montarRodape(conteudo);
+  montarAssinatura();
 }
