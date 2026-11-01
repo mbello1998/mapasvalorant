@@ -1193,7 +1193,7 @@ function pilula(rotulo, ativo, aoClicar) {
 
 /* ---------------------------------------------------------------- início -- */
 
-async function iniciar() {
+export async function iniciar() {
   const { conteudo } = await carregarConteudo();
   estado.conteudo = conteudo;
   vestirPagina(conteudo, { aqui: "linha.html", titulo: conteudo.linha?.titulo ?? "A Linha de Tiro" });
@@ -1340,4 +1340,6 @@ async function iniciar() {
   desenharRepouso();
 }
 
-iniciar();
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();

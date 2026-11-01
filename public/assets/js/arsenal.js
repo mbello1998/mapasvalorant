@@ -9,7 +9,7 @@ import { carregarConta, montarBotaoDeConta } from "./conta.js";
 const CHAVE_LOADOUT = "estande.loadout.v1";
 const POR_PAGINA = 60;
 
-const estado = {
+const estadoLimpo = () => ({
   conteudo: null,
   arsenal: null,
   loadout: {},          // uuid da arma -> uuid da skin
@@ -18,7 +18,9 @@ const estado = {
   busca: "",
   ordem: "nome",
   mostrando: POR_PAGINA,
-};
+});
+
+const estado = estadoLimpo();
 
 const porUuid = { armas: new Map(), raridades: new Map(), temas: new Map(), skins: new Map() };
 
@@ -436,7 +438,7 @@ function pintarFiltroRaridade() {
 
 /* ---------------------------------------------------------------- início -- */
 
-async function iniciar() {
+export async function iniciar() {
   const { conteudo } = await carregarConteudo();
   estado.conteudo = conteudo;
   estado.loadout = lerLoadout();
@@ -501,4 +503,13 @@ async function iniciar() {
   });
 }
 
-iniciar();
+/** Sair da tela. O módulo fica na memória entre visitas: sem zerar, o filtro
+ *  e a página de skins da visita anterior reapareceriam na volta. */
+export function desmontar() {
+  Object.assign(estado, estadoLimpo());
+  for (const mapa of Object.values(porUuid)) mapa.clear();
+}
+
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();

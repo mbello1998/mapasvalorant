@@ -1021,7 +1021,7 @@ function acompanharPresenca() {
 
 /* ----------------------------------------------------------------- início */
 
-async function iniciar() {
+export async function iniciar() {
   const { conteudo, reserva } = await carregarConteudo();
 
   vestirPagina(conteudo, { aqui: "index.html" });
@@ -1119,4 +1119,6 @@ async function iniciar() {
     });
 }
 
-iniciar();
+// A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
+// é o roteiro, na hora da troca. Aberta solta, a página se vira sozinha.
+if (!document.body.dataset.casca) iniciar();

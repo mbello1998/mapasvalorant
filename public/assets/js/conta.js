@@ -229,9 +229,15 @@ export function mostrarBoasVindas() {
 /* ------------------------------------------------------- botão no topo --- */
 
 /** O estado da conta no trilho: entrar, ou o apelido com a opção de sair. */
+let botaoMontado = false;
+
 export function montarBotaoDeConta() {
   const alvo = $("contaTrilho");
-  if (!alvo) return;
+  // Idempotente: o trilho fica na casca e não é trocado, e esta função assina
+  // `aoMudarConta` por dentro sem guardar o cancelamento — chamar a cada troca
+  // de tela empilharia um assinante por visita.
+  if (!alvo || botaoMontado) return;
+  botaoMontado = true;
 
   const pintar = () => {
     alvo.replaceChildren();
