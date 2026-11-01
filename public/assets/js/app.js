@@ -378,6 +378,29 @@ function montarFeed(c, coleta) {
   for (const item of todos) feed.append(cartaoFeed(item));
 }
 
+/* -------------------------------------------------------------- limpeza -- */
+
+/* O que precisa ser desligado quando a tela sai. Dentro da casca o módulo fica
+   na memória: um cronômetro esquecido aqui continuaria batendo ponto e
+   repintando um ranking que não está mais na tela. */
+const limpezas = [];
+
+/** O estande montado nesta visita. Vive no módulo, e não dentro de
+ *  `iniciar()`, porque é o `desmontar()` que precisa alcançá-lo. */
+let estande = null;
+
+/** `setInterval` que sabe se desligar. */
+function cadaTanto(fn, ms) {
+  const id = setInterval(fn, ms);
+  limpezas.push(() => clearInterval(id));
+}
+
+/** Ouvinte que sabe se desligar. */
+function ouvir(alvo, evento, fn) {
+  alvo.addEventListener(evento, fn);
+  limpezas.push(() => alvo.removeEventListener(evento, fn));
+}
+
 /* --------------------------------------------------------------- agentes -- */
 
 const SLOTS = { Ability1: "Habilidade 1 (C)", Ability2: "Habilidade 2 (Q)", Grenade: "Habilidade (E)", Ultimate: "Suprema (X)", Passive: "Passiva" };
@@ -969,8 +992,8 @@ function acompanharRanking() {
   };
 
   atualizar();
-  setInterval(atualizar, 60_000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) atualizar(); });
+  cadaTanto(atualizar, 60_000);
+  ouvir(document, "visibilitychange", () => { if (!document.hidden) atualizar(); });
 }
 
 /* -------------------------------------------------------------- presença -- */
@@ -1011,12 +1034,12 @@ function acompanharPresenca() {
   const ler = () => { if (!document.hidden) verPresenca().then(pintar); };
 
   bater();
-  setInterval(bater, PONTO_MS);
-  setInterval(ler, LEITURA_MS);
+  cadaTanto(bater, PONTO_MS);
+  cadaTanto(ler, LEITURA_MS);
   // Quem volta para a aba vê o número de agora, não o de quando saiu: bate o
   // ponto na hora, porque a marca dele pode ter saído da janela enquanto a
   // aba estava escondida.
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) bater(); });
+  ouvir(document, "visibilitychange", () => { if (!document.hidden) bater(); });
 }
 
 /* ----------------------------------------------------------------- início */
@@ -1028,7 +1051,7 @@ export async function iniciar() {
   carregarConta().then(() => {
     montarBotaoDeConta();
     const repintar = montarInterruptor($("autoRanking"));
-    aoMudarConta(() => repintar());
+    limpezas.push(aoMudarConta(() => repintar()));
   });
   mostrarBoasVindas();
   montarCta(conteudo);
@@ -1043,7 +1066,6 @@ export async function iniciar() {
   const repintarMira = montarPainelDeMira();
 
   // O estande precisa da lista de modos antes de montar.
-  let estande;
   const modos = montarModos(conteudo, (id) => estande?.trocarModo(id));
   estande = montarEstande({
     secao: $("estande"),
@@ -1117,6 +1139,16 @@ export async function iniciar() {
         textContent: `Não foi possível carregar os mapas (${e.message}).`,
       }));
     });
+}
+
+/** Sair da tela: desliga os três cronômetros, os ouvintes de visibilidade e a
+ *  assinatura de conta. Sem isto, a segunda visita roda tudo em dobro. */
+export function desmontar() {
+  // O estande é desta tela: o canvas sai do DOM com ela, mas o laço e os
+  // ouvintes de janela que ele prendeu continuariam vivos.
+  estande?.parar();
+  estande = null;
+  for (const limpar of limpezas.splice(0)) limpar();
 }
 
 // A casca marca o body antes de importar: dentro dela quem chama `iniciar()`

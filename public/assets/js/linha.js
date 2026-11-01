@@ -124,6 +124,17 @@ let larg = 1000, alt = 600;
 let paleta = {};
 let quadro = 0, ultimoTique = 0;
 
+/* O canvas sai do DOM junto com a tela, mas o que ficou preso em `window` e
+   `document` não sai — e o laço de animação menos ainda. */
+const limpezas = [];
+const ouvir = (alvo, evento, fn) => {
+  alvo.addEventListener(evento, fn);
+  limpezas.push(() => alvo.removeEventListener(evento, fn));
+};
+
+/** A faixa da tela de carga, para ela não tocar sozinha depois da saída. */
+let musicaDaCarga = null;
+
 const jogo = {
   rodando: false,
   bots: [],
@@ -800,6 +811,7 @@ async function entrarNoMapa() {
   // A faixa, se houver. Sem ela, o arrasto sintetizado assume — a tela nunca
   // entra em silêncio por causa de um arquivo faltando.
   const musica = tocarCarregamento();
+  musicaDaCarga = musica;
   if (!musica) somCarregando();
 
 
@@ -816,6 +828,7 @@ async function entrarNoMapa() {
 
   // A faixa some junto com a tela, não invade a rodada.
   musica?.parar(0.45);
+  musicaDaCarga = null;
   somEntrou();
   tela.dataset.saindo = "sim";
   await new Promise((r) => setTimeout(r, rapido ? 60 : 420));
@@ -1200,16 +1213,16 @@ export async function iniciar() {
   carregarConta().then(montarBotaoDeConta);
 
   redimensionar();
-  window.addEventListener("resize", redimensionar);
+  ouvir(window, "resize", redimensionar);
   // Sair com Esc não passa pelo nosso botão: o canvas tem que remedir sozinho.
-  document.addEventListener("fullscreenchange", () => {
+  ouvir(document, "fullscreenchange", () => {
     moldura()?.classList.toggle("campo__tela--cheia", emTelaCheia());
     acomodarTelaDeCarga();
     redimensionar();
   });
   montarControleDeSom();
   repintarInterruptor = montarInterruptor($("autoRanking"));
-  aoMudarConta(() => repintarInterruptor?.());
+  limpezas.push(aoMudarConta(() => repintarInterruptor?.()));
 
   // Decodificar a faixa leva um instante. Fazer isso agora, sem esperar,
   // tira esse atraso do primeiro clique em "Acender as luzes". O contexto de
@@ -1332,12 +1345,24 @@ export async function iniciar() {
   tela.addEventListener("contextmenu", (ev) => { if (jogo.rodando) ev.preventDefault(); });
 
   // Sair da aba no meio da rodada encerra: resultado com pausa não vale.
-  document.addEventListener("visibilitychange", () => {
+  ouvir(document, "visibilitychange", () => {
     if (document.hidden && jogo.rodando) encerrar();
   });
 
   atualizarPlacar();
   desenharRepouso();
+}
+
+/**
+ * Sair da tela. Não chama `encerrar()`: quem troca de tela no meio de uma
+ * rodada não quer o resultado dela contado, quer o laço parado e o silêncio.
+ */
+export function desmontar() {
+  jogo.rodando = false;
+  cancelAnimationFrame(quadro);
+  musicaDaCarga?.parar(0.1);
+  musicaDaCarga = null;
+  for (const limpar of limpezas.splice(0)) limpar();
 }
 
 // A casca marca o body antes de importar: dentro dela quem chama `iniciar()`
