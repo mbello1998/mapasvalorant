@@ -9,7 +9,7 @@ import { descricaoDoMapa, metaDoMapa, juntarDuelos } from "./mapas-texto.js";
 import { pintarArte } from "./imagem.js";
 import { enderecoDoPlayer, creditoDoVideo } from "./video.js";
 import {
-  $, elemento, texto, comoData, semMarcacao, vestirPagina,
+  $, elemento, texto, comoData, semMarcacao, vestirPagina, pararMidiaAoFechar,
 } from "./chrome.js";
 import { carregarConta, montarBotaoDeConta, mostrarBoasVindas, aoMudarConta, pedirConta, contaAtual } from "./conta.js";
 import { acordarAudio, somLigado, volumeSom, alternarSom, ajustarVolume, somAcerto } from "./audio.js";
@@ -617,6 +617,7 @@ function abrirAgente(a) {
 
   caixa.append(fechar, rolo);
   gaveta.showModal();
+  pararMidiaAoFechar(gaveta);
 
   // O video entra depois, logo abaixo da descricao: ler o arquivo de dados
   // nao pode atrasar o painel. Se a pessoa ja fechou ou abriu outro agente

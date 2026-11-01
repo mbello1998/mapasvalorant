@@ -51,6 +51,26 @@ export function elemento(tag, props = {}, filhos = []) {
 
 /* ------------------------------------------------------ tema e identidade -- */
 
+/**
+ * Fechar um painel tem de parar o que estava tocando dentro dele.
+ *
+ * `close()` so tira o dialogo da vista: o `<iframe>` do YouTube e o `<video>`
+ * da skin continuam no documento, e player no documento e player tocando — a
+ * pessoa fecha o painel e o som segue, sem nada na tela para desligar. Quem
+ * para de verdade e a saida do documento.
+ *
+ * Nao estraga nada tirar: o conteudo do painel e remontado do zero a cada
+ * abertura, e enquanto ele esta fechado ninguem ve o que sobrou ali dentro.
+ *
+ * E registrado a cada abertura com `once`, para o ouvinte nao se empilhar.
+ */
+export function pararMidiaAoFechar(dialogo) {
+  if (!dialogo) return;
+  dialogo.addEventListener("close", () => {
+    for (const midia of dialogo.querySelectorAll("iframe, video, audio")) midia.remove();
+  }, { once: true });
+}
+
 export function aplicarTema(tema = {}) {
   const mapa = {
     aco: "--aco", acoAlto: "--aco-alto", linha: "--linha",

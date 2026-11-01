@@ -1,5 +1,5 @@
 import { carregarConteudo, carregarArsenal } from "./api.js";
-import { $, elemento, vestirPagina } from "./chrome.js";
+import { $, elemento, vestirPagina, pararMidiaAoFechar } from "./chrome.js";
 import { carregarConta, montarBotaoDeConta } from "./conta.js";
 
 // O Arsenal: catálogo completo de skins e um montador de loadout que soma o
@@ -283,6 +283,8 @@ function abrirSkin(skin) {
     ]),
   );
   gaveta.showModal();
+  // Fechar o painel para o video da skin: ver em chrome.js por que.
+  pararMidiaAoFechar(gaveta);
 }
 
 /* -------------------------------------------------------------- loadout --- */
