@@ -89,3 +89,24 @@ test("a barra de endereço fica só com a raiz: sem index.html e sem âncora", (
   assert.equal(enderecoLimpo("/", "#estande"), "/");
   assert.equal(enderecoLimpo("/index.html", "#agentes"), "/");
 });
+
+test("âncora escrita como #lugar é da tela atual, seja qual for a tela", () => {
+  // Dentro da casca o endereço é sempre "/", então um href "#catalogo" resolve
+  // para a raiz e parecia um link para o Estande: o link de pular levava para
+  // fora da tela em que a pessoa estava.
+  for (const tela of ["arsenal", "linha", "mapas", "ranking", "estande"]) {
+    assert.equal(
+      podeTrocar(clique({ hrefCru: "#catalogo", href: `${ORIGEM}/#catalogo`, telaAtual: tela })),
+      false,
+      tela,
+    );
+  }
+});
+
+test("link escrito com arquivo continua trocando de tela", () => {
+  // O trilho escreve "index.html#estande" quando não se está no Estande.
+  assert.equal(
+    podeTrocar(clique({ hrefCru: "index.html#estande", href: `${ORIGEM}/index.html#estande`, telaAtual: "arsenal" })),
+    true,
+  );
+});

@@ -534,6 +534,8 @@ export async function iniciar() {
 /** Sair da tela: zera a escolha de mapa, agente e ponto, que de outro modo
  *  voltariam marcados na próxima visita. */
 export function desmontar() {
+  visor?.desmontar();
+  visor = null;
   Object.assign(estado, estadoLimpo());
 }
 

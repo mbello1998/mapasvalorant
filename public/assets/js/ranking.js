@@ -396,8 +396,10 @@ export async function iniciar() {
 
   estado.tabela = tabela.status === "fulfilled" ? tabela.value : null;
 
-  // A tabela acompanha quem publicar enquanto a página está aberta.
-  setInterval(async () => {
+  // A tabela acompanha quem publicar enquanto a tela está aberta. O
+  // cancelamento entra nas limpezas: dentro da casca, um cronômetro por visita
+  // seguiria batendo em /api/ranking para sempre, de qualquer outra tela.
+  const relogio = setInterval(async () => {
     if (document.hidden) return;
     try {
       estado.tabela = await carregarRanking();
@@ -405,6 +407,7 @@ export async function iniciar() {
       pintarTabela();
     } catch { /* uma falha de rede não precisa apagar o que já está na tela */ }
   }, 60_000);
+  limpezas.push(() => clearInterval(relogio));
 
   pintarMeuElo();
   pintarModos();

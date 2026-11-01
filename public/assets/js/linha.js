@@ -114,15 +114,26 @@ const gravar = (chave, valor) => {
 
 /* ============================================================== o jogo === */
 
-const tela = $("tela");
-const ctx = tela.getContext("2d", { alpha: false });
+/* O canvas e a seção são apanhados a cada visita, dentro de `iniciar()`, e
+   não aqui em cima. Dentro da casca o módulo é importado uma vez só: preso ao
+   nó da primeira visita, o jogo passaria a desenhar num canvas que a troca de
+   tela já tinha removido, e a segunda entrada era uma arena em branco que não
+   respondia a clique. */
+let tela = null;
+let ctx = null;
 // As luzes acendem só no campo. Invertendo o <main> inteiro, o preparo e o
 // cabeçalho iriam junto — e não é isso que um estande faz.
-const secao = $("campo");
+let secao = null;
 
 let larg = 1000, alt = 600;
 let paleta = {};
 let quadro = 0, ultimoTique = 0;
+
+/* Sobe a cada saída da tela. `comecar()` é uma sequência de vários segundos —
+   preparar arma, tela de carga, contagem — e no fim acende o laço. Quem saiu
+   no meio dela não pode ter o laço aceso depois, nem a rodada publicada: o
+   número tirado no começo diz se ainda é a mesma visita. */
+let geracao = 0;
 
 /* O canvas sai do DOM junto com a tela, mas o que ficou preso em `window` e
    `document` não sai — e o laço de animação menos ainda. */
@@ -837,6 +848,9 @@ async function entrarNoMapa() {
 }
 
 async function comecar() {
+  const minhaGeracao = geracao;
+  const saiu = () => minhaGeracao !== geracao;
+
   if (jogo.rodando) return;
   if (!prontoParaJogar()) {
     $("resultado").textContent = "Escolha uma arma com estatísticas antes de começar.";
@@ -856,7 +870,9 @@ async function comecar() {
   $("btnComecar").disabled = true;
 
   await prepararArteDaArma();
+  if (saiu()) return;
   await entrarNoMapa();
+  if (saiu()) return;
 
   secao.dataset.luz = "acesa";
   lerPaleta();
@@ -869,6 +885,7 @@ async function comecar() {
     await new Promise((r) => setTimeout(r, rapido ? 220 : 520));
   }
   $("contagem").hidden = true;
+  if (saiu()) return;
 
   const duracao = Number(estado.conteudo?.linha?.duracao) > 0
     ? Number(estado.conteudo.linha.duracao) : 60;
@@ -1207,6 +1224,11 @@ function pilula(rotulo, ativo, aoClicar) {
 /* ---------------------------------------------------------------- início -- */
 
 export async function iniciar() {
+  // Antes de tudo: esta visita tem o seu próprio canvas.
+  tela = $("tela");
+  ctx = tela.getContext("2d", { alpha: false });
+  secao = $("campo");
+
   const { conteudo } = await carregarConteudo();
   estado.conteudo = conteudo;
   vestirPagina(conteudo, { aqui: "linha.html", titulo: conteudo.linha?.titulo ?? "A Linha de Tiro" });
@@ -1358,6 +1380,7 @@ export async function iniciar() {
  * rodada não quer o resultado dela contado, quer o laço parado e o silêncio.
  */
 export function desmontar() {
+  geracao += 1;
   jogo.rodando = false;
   cancelAnimationFrame(quadro);
   musicaDaCarga?.parar(0.1);

@@ -489,7 +489,12 @@ function selo(patente, grande = false) {
 let dialogo = null;
 
 function montarDialogo() {
-  if (dialogo) return dialogo;
+  if (dialogo) {
+    // A troca de tela varre o corpo do documento, e leva junto o que foi
+    // pendurado nele. O nó guardado continua bom: basta pendurar de novo.
+    if (!dialogo.isConnected) document.body.append(dialogo);
+    return dialogo;
+  }
   const caixa = elemento("div", { class: "gaveta__caixa chf perfil", id: "perfilCaixa" });
   dialogo = elemento("dialog", { class: "gaveta gaveta--perfil", "aria-labelledby": "perfilNome" }, [caixa]);
   dialogo.addEventListener("click", (ev) => { if (ev.target === dialogo) dialogo.close(); });
@@ -601,7 +606,12 @@ let flutuante = null;
 let relogioHover = null;
 
 function caixaFlutuante() {
-  if (flutuante) return flutuante;
+  if (flutuante) {
+    // A troca de tela varre o corpo do documento, e leva junto o que foi
+    // pendurado nele. O nó guardado continua bom: basta pendurar de novo.
+    if (!flutuante.isConnected) document.body.append(flutuante);
+    return flutuante;
+  }
   flutuante = elemento("div", { class: "cartao-jogador", role: "tooltip", hidden: true });
   document.body.append(flutuante);
   addEventListener("scroll", esconderCartao, { passive: true, capture: true });

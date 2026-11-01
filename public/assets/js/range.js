@@ -194,6 +194,10 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
 
   let quadro = 0;
 
+  /* Mesma ideia do laço: `comecar()` leva segundos até acender, e quem trocou
+     de tela no meio não pode ter o laço aceso depois nem a sessão publicada. */
+  let geracao = 0;
+
   /* O que fica preso em `window` e `document` sobrevive à troca de tela, ao
      contrário do que está preso no canvas. Guardar o cancelamento é o que
      permite ao estande sair de cena inteiro. */
@@ -796,6 +800,8 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
 
   async function comecar() {
     if (estado.rodando) return;
+    const minhaGeracao = geracao;
+    const saiu = () => minhaGeracao !== geracao;
 
     elementos.resultado.textContent = "";
     limparFimDeTreino();
@@ -805,8 +811,10 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
     // isso o contexto e os dois arquivos vêm antes de qualquer espera.
     acordarAudio();
     await Promise.all([prepararArma(ARMA.nome), prepararMusica(MUSICA_CARGA)]);
+    if (saiu()) return;
 
     await entrarNoExercicio();
+    if (saiu()) return;
 
     secao.dataset.luz = "acesa";
     lerPaleta();
@@ -821,6 +829,7 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
     }
     elementos.contagem.hidden = true;
 
+    if (saiu()) return;
     Object.assign(estado, {
       rodando: true, alvos: [], acertos: 0, tiros: 0, reacoes: [],
       tempoEmAlvo: 0, aliadosClicados: 0, comecouEm: performance.now(),
@@ -1316,6 +1325,7 @@ export function montarEstande({ secao, tela, capa, elementos, modos, patentes, a
    * ouvintes parados.
    */
   function parar() {
+    geracao += 1;
     estado.rodando = false;
     cancelAnimationFrame(quadro);
     for (const limpar of limpezas.splice(0)) limpar();

@@ -33,7 +33,12 @@ let dialogo = null;
 let resolverPendente = null;
 
 function montarDialogo() {
-  if (dialogo) return dialogo;
+  if (dialogo) {
+    // A troca de tela varre o corpo do documento, e leva junto o que foi
+    // pendurado nele. O nó guardado continua bom: basta pendurar de novo.
+    if (!dialogo.isConnected) document.body.append(dialogo);
+    return dialogo;
+  }
 
   const form = elemento("form", { class: "gaveta__caixa chf", method: "dialog", id: "formConta" });
   dialogo = elemento("dialog", { class: "gaveta gaveta--conta", "aria-labelledby": "contaTit" }, [form]);

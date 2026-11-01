@@ -46,10 +46,15 @@ export function telaDoHref(href, origem) {
 export function podeTrocar({
   botao = 0, meta = false, ctrl = false, shift = false, alt = false,
   jaTratado = false, alvo = "", baixar = false,
-  href = "", origem = "", telaAtual = null,
+  href = "", hrefCru = "", origem = "", telaAtual = null,
 } = {}) {
   if (botao !== 0 || meta || ctrl || shift || alt || jaTratado || baixar) return false;
   if (alvo && alvo !== "_self") return false;
+
+  // Um href escrito como "#lugar" é âncora da tela em que se está, sempre.
+  // Resolvido vira a raiz — que é o arquivo do Estande —, e sem olhar o que
+  // está escrito o link de pular levaria para fora de qualquer outra tela.
+  if (String(hrefCru).startsWith("#")) return false;
 
   const tela = telaDoHref(href, origem);
   return tela !== null && tela !== telaAtual;
@@ -76,6 +81,19 @@ export function precisaDesviar(caminho) {
  */
 export function enderecoLimpo(caminho, hash) {
   return caminho === "/" && !hash ? null : "/";
+}
+
+/**
+ * `globalThis.sessionStorage` pode lançar na própria leitura da propriedade
+ * quando o navegador está restrito — antes de qualquer `getItem`. Sem isto a
+ * casca nem começava.
+ */
+export function cofre(nome) {
+  try {
+    return globalThis[nome] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Onde a tela pedida por um link antigo espera, entre o desvio e a casca. */
@@ -136,6 +154,7 @@ function barra() {
 function acenderBarra() {
   const b = barra();
   if (!b) return;
+  clearTimeout(relogioBarra);
   b.hidden = false;
   b.classList.remove("rota-barra--pronta");
   // Um quadro de respiro: sem ele o navegador junta as duas classes e a
@@ -143,11 +162,14 @@ function acenderBarra() {
   requestAnimationFrame(() => b.classList.add("rota-barra--correndo"));
 }
 
+let relogioBarra = 0;
+
 function apagarBarra() {
   const b = barra();
   if (!b) return;
   b.classList.add("rota-barra--pronta");
-  setTimeout(() => {
+  clearTimeout(relogioBarra);
+  relogioBarra = setTimeout(() => {
     b.hidden = true;
     b.classList.remove("rota-barra--correndo", "rota-barra--pronta");
   }, 260);
@@ -239,11 +261,17 @@ export async function abrir(tela, { doHistorico = false, ancora = "" } = {}) {
   trocarCorpo(doc);
   atual = tela;
 
+  // Mais um clique chegou enquanto trocávamos o corpo: quem perdeu não monta
+  // a tela, para não escrever título e trilho por cima da que vai ficar.
+  if (meu !== contador) return;
+
   try {
     const entrando = await moduloDa(tela);
     await entrando.iniciar();
   } catch {
-    location.href = alvo.arquivo;
+    // Só quem ainda vale é que leva a pessoa embora. A tela do perdedor foi
+    // trocada por baixo dele, e o erro é consequência disso, não uma falha.
+    if (meu === contador) location.href = alvo.arquivo;
     return;
   }
 
@@ -266,7 +294,8 @@ function aoClicar(ev) {
     botao: ev.button, meta: ev.metaKey, ctrl: ev.ctrlKey,
     shift: ev.shiftKey, alt: ev.altKey, jaTratado: ev.defaultPrevented,
     alvo: a.target, baixar: a.hasAttribute("download"),
-    href: a.href, origem: location.origin, telaAtual: atual,
+    href: a.href, hrefCru: a.getAttribute("href") ?? "",
+    origem: location.origin, telaAtual: atual,
   };
 
   if (podeTrocar(dados)) {
@@ -279,7 +308,8 @@ function aoClicar(ev) {
   // O link da tela em que já se está. Sem âncora recarregaria a página; com
   // âncora escreveria o `#lugar` na barra. Nos dois casos quem decide somos
   // nós, porque na barra fica só a raiz.
-  const tela = telaDoHref(a.href, location.origin);
+  const cru = a.getAttribute("href") ?? "";
+  const tela = cru.startsWith("#") ? atual : telaDoHref(a.href, location.origin);
   const simples = !ev.defaultPrevented && ev.button === 0
     && !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)
     && (!a.target || a.target === "_self") && !a.hasAttribute("download");
@@ -306,7 +336,7 @@ export async function comecar() {
     abrir(tela, { doHistorico: true });
   });
 
-  const inicial = telaInicial(location.pathname, lerMarca(globalThis.sessionStorage));
+  const inicial = telaInicial(location.pathname, lerMarca(cofre("sessionStorage")));
 
   // Depois de descobrir a tela, e nunca antes: é o caminho que a revela.
   const limpo = enderecoLimpo(location.pathname, location.hash);
@@ -317,12 +347,14 @@ export async function comecar() {
     atual = inicial;
     const modulo = await moduloDa(inicial);
     await modulo.iniciar();
-    // A primeira entrada também precisa de estado: sem isto, o primeiro
-    // Voltar traria `null` e não saberia para onde ir.
-    history.replaceState({ tela: inicial }, "", location.href);
   } else {
     await abrir(inicial, { doHistorico: true });
   }
+
+  // A primeira entrada também precisa de estado, inclusive quando veio de um
+  // link antigo: sem isto o primeiro Voltar traz `null` e abre o Estande em
+  // vez da tela em que a pessoa entrou.
+  history.replaceState({ tela: atual ?? inicial }, "", location.href);
 }
 
 // O roteiro também é importado pelo `chrome.js`, que roda em toda página —

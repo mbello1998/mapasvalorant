@@ -4,6 +4,7 @@ import {
 } from "./api.js";
 import { montarEstande } from "./range.js";
 import { guardarPresenca, lembrarPresenca } from "./presenca.js";
+import { cofre } from "./roteiro.js";
 import {
   $, elemento, texto, comoData, semMarcacao, vestirPagina,
 } from "./chrome.js";
@@ -1029,7 +1030,7 @@ function acompanharPresenca(adiantada) {
     // alguém olhando a tela seria falso — há pelo menos esta aba.
     const online = Number.isFinite(r.online) ? Math.max(r.online, 1) : r.online;
     estado.online = { online, hoje: r.hoje ?? online };
-    guardarPresenca(globalThis.localStorage, estado.online);
+    guardarPresenca(cofre("localStorage"), estado.online);
     const agora = document.querySelector('[data-online="1"] .ficha__val');
     if (agora) agora.textContent = numeroOuTraco(estado.online.online);
     const hoje = document.querySelector('[data-hoje="1"] .ficha__val');
@@ -1064,7 +1065,7 @@ export async function iniciar() {
 
   // E o que ficou guardado da última visita já vale como primeiro desenho:
   // quem volta vê número, não travessão, enquanto a resposta nova não chega.
-  estado.online = lembrarPresenca(globalThis.localStorage) ?? estado.online;
+  estado.online = lembrarPresenca(cofre("localStorage")) ?? estado.online;
 
   const { conteudo, reserva } = await carregarConteudo();
 

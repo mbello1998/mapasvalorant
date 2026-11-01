@@ -63,13 +63,8 @@ export function montarVisor() {
   });
 
   // As setas navegam e Esc fecha enquanto o visor está aberto. O ouvinte fica
-  // no documento porque o foco pode estar em qualquer um dos botões.
-  document.addEventListener("keydown", (ev) => {
-    if (fundo.hidden) return;
-    if (ev.key === "Escape") { ev.preventDefault(); fecharVisor(); }
-    else if (ev.key === "ArrowLeft") { ev.preventDefault(); andar(-1); }
-    else if (ev.key === "ArrowRight") { ev.preventDefault(); andar(1); }
-  });
+  // no documento porque o foco pode estar em qualquer um dos botões, e é
+  // soltado no `desmontar()` lá embaixo.
 
   function pintar() {
     const total = fotos.length;
@@ -108,6 +103,25 @@ export function montarVisor() {
     fechar.focus();
   }
 
+  const naTecla = (ev) => {
+    if (fundo.hidden) return;
+    if (ev.key === "Escape") { ev.preventDefault(); fecharVisor(); }
+    else if (ev.key === "ArrowLeft") { ev.preventDefault(); andar(-1); }
+    else if (ev.key === "ArrowRight") { ev.preventDefault(); andar(1); }
+  };
+  document.addEventListener("keydown", naTecla);
+
+  /**
+   * Tirar o visor de cena. Fechar antes de sair é o que importa: o aberto
+   * trava a rolagem do site inteiro com a classe `sem-rolagem`, e ela ficaria
+   * presa na tela seguinte.
+   */
+  function desmontar() {
+    fecharVisor();
+    document.removeEventListener("keydown", naTecla);
+    fundo.remove();
+  }
+
   document.body.append(fundo);
-  return { abrir };
+  return { abrir, desmontar };
 }
