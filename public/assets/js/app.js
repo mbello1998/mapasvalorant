@@ -7,6 +7,7 @@ import { guardarPresenca, lembrarPresenca } from "./presenca.js";
 import { cofre } from "./roteiro.js";
 import { descricaoDoMapa, metaDoMapa, juntarDuelos } from "./mapas-texto.js";
 import { pintarArte } from "./imagem.js";
+import { enderecoDoPlayer, creditoDoVideo } from "./video.js";
 import {
   $, elemento, texto, comoData, semMarcacao, vestirPagina,
 } from "./chrome.js";
@@ -493,6 +494,68 @@ function montarAgentes(agentes, destaqueUuid) {
   pintar();
 }
 
+/* ------------------------------------------------ o vídeo do agente ----- */
+/**
+ * O vídeo oficial de cada agente, lido de um arquivo curado à mão.
+ *
+ * Uma leitura por sessão de navegação, e só na primeira vez que alguém abre
+ * um painel. Agente sem vídeo conferido não aparece no arquivo e não ganha
+ * caixa nenhuma: um quadro vazio seria pior do que nada.
+ */
+let videosDeAgentes = null;
+
+function videoDoAgente(uuid) {
+  if (!videosDeAgentes) {
+    videosDeAgentes = fetch("/assets/dados/videos-agentes.json")
+      .then((r) => (r.ok ? r.json() : {}))
+      .catch((e) => {
+        console.warn("Vídeos dos agentes indisponíveis:", e.message);
+        return {};
+      });
+  }
+  return videosDeAgentes.then((m) => m?.[uuid] ?? null);
+}
+
+/**
+ * A caixa do vídeo: título, crédito e um botão que troca de lugar com o
+ * quadro.
+ *
+ * O `<iframe>` só nasce no clique. Pendurado de saída, ele faria o YouTube ou
+ * o TikTok receberem uma visita — e plantarem o que plantam — de quem abriu o
+ * painel para ler as habilidades e nunca quis ver vídeo nenhum.
+ */
+function caixaDeVideo(video) {
+  const src = enderecoDoPlayer(video);
+  if (!src) return null;
+
+  const quadro = elemento("div", { class: `video__quadro video__quadro--${video.plataforma}` });
+
+  const ver = elemento("button", {
+    type: "button", class: "btn btn--vazio chf video__ver", texto: "Ver vídeo",
+    onclick: () => {
+      ver.remove();
+      quadro.append(elemento("iframe", {
+        class: "video__player", src, title: video.titulo || "Vídeo do agente",
+        loading: "lazy", allowfullscreen: true,
+        allow: "autoplay; encrypted-media; fullscreen; picture-in-picture",
+        referrerpolicy: "strict-origin-when-cross-origin",
+      }));
+    },
+  });
+  quadro.append(ver);
+
+  return elemento("div", { class: "video" }, [
+    video.titulo ? elemento("p", { class: "video__titulo", texto: video.titulo }) : null,
+    quadro,
+    elemento("p", { class: "video__credito" }, [
+      elemento("a", {
+        href: video.url, target: "_blank", rel: "noopener noreferrer",
+        texto: creditoDoVideo(video),
+      }),
+    ]),
+  ]);
+}
+
 function abrirAgente(a) {
   const gaveta = $("gaveta");
   const caixa = $("gavetaCaixa");
@@ -554,6 +617,16 @@ function abrirAgente(a) {
 
   caixa.append(fechar, rolo);
   gaveta.showModal();
+
+  // O video entra depois, logo abaixo da descricao: ler o arquivo de dados
+  // nao pode atrasar o painel. Se a pessoa ja fechou ou abriu outro agente
+  // enquanto isso, o resultado e descartado.
+  videoDoAgente(a.uuid).then((v) => {
+    const bloco = v && caixaDeVideo(v);
+    if (!bloco) return;
+    if (!gaveta.open || $("gavetaNome")?.textContent !== a.displayName) return;
+    desc.after(bloco);
+  });
 }
 
 /* ----------------------------------------------------------------- mapas -- */

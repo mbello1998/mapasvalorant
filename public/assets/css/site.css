@@ -553,6 +553,22 @@ a.feed__item:hover::before { background: var(--sinal); }
 .hab__desc { font-size: var(--t-s); color: var(--tinta-2); line-height: 1.5; max-width: var(--medida); }
 .gaveta__fechar { position: absolute; top: var(--e-3); right: var(--e-3); z-index: 3; }
 
+/* Video do agente, logo abaixo da descricao. O quadro guarda a proporcao da
+   casa de origem — o YouTube e deitado, o TikTok e em pe — para a caixa nao
+   pular de tamanho quando o player entra. */
+.video { margin-top: var(--e-4); display: grid; gap: var(--e-2); justify-items: start; }
+.video__titulo { font-size: var(--t-s); color: var(--tinta-2); font-weight: 600; max-width: var(--medida); }
+.video__quadro {
+  position: relative; width: 100%;
+  display: grid; place-items: center;
+  background: var(--aco-fundo); border: var(--borda) solid var(--linha-fina);
+}
+.video__quadro--youtube { aspect-ratio: 16 / 9; }
+.video__quadro--tiktok { aspect-ratio: 9 / 16; max-width: 325px; }
+.video__player { width: 100%; height: 100%; border: 0; display: block; }
+.video__credito { font-size: var(--t-xs); color: var(--tinta-3); }
+.video__credito a { color: var(--sinal-tinta); font-weight: 600; }
+
 /* Painel do mapa. Onde o agente tem o retrato ao lado do nome, o mapa tem a
    arte inteira em cima: é o que ele tem para mostrar. */
 .gaveta__capa {
