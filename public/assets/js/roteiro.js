@@ -69,6 +69,35 @@ export function precisaDesviar(caminho) {
   return telaDoCaminho(caminho) !== null;
 }
 
+/**
+ * O endereço que a barra deve mostrar, ou null se já está certo. A barra fica
+ * só com a raiz: sem `index.html`, que é detalhe de servidor, e sem âncora,
+ * que é lugar dentro da página e não endereço.
+ */
+export function enderecoLimpo(caminho, hash) {
+  return caminho === "/" && !hash ? null : "/";
+}
+
+/** Onde a tela pedida por um link antigo espera, entre o desvio e a casca. */
+export const CHAVE_MARCA = "rota.tela";
+
+/**
+ * Lê e apaga a marca deixada pelo desvio. É de uma viagem só: recarregar a
+ * raiz depois não deve voltar para a tela de ontem.
+ *
+ * Navegação restrita bloqueia o `sessionStorage`, e isso não pode derrubar a
+ * abertura do site: qualquer erro do cofre vira "não havia marca".
+ */
+export function lerMarca(cofre) {
+  try {
+    const tela = cofre?.getItem(CHAVE_MARCA) ?? null;
+    cofre?.removeItem(CHAVE_MARCA);
+    return tela && Object.hasOwn(TELAS, tela) ? tela : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Lê o estado do histórico. Uma entrada anterior à casca não tem tela. */
 export function telaDoEstado(estado) {
   const tela = estado && typeof estado === "object" ? estado.tela : null;
@@ -247,14 +276,20 @@ function aoClicar(ev) {
     return;
   }
 
-  // O link da tela em que já se está, sem âncora, recarregaria a página e
-  // tiraria o endereço da raiz. Rolar ao topo é o que ele quer dizer.
+  // O link da tela em que já se está. Sem âncora recarregaria a página; com
+  // âncora escreveria o `#lugar` na barra. Nos dois casos quem decide somos
+  // nós, porque na barra fica só a raiz.
   const tela = telaDoHref(a.href, location.origin);
-  if (tela && tela === atual && !new URL(a.href, location.origin).hash
-      && !ev.defaultPrevented && ev.button === 0
-      && !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)) {
+  const simples = !ev.defaultPrevented && ev.button === 0
+    && !(ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey)
+    && (!a.target || a.target === "_self") && !a.hasAttribute("download");
+
+  if (tela && tela === atual && simples) {
     ev.preventDefault();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const ancora = new URL(a.href, location.origin).hash;
+    const alvo = ancora && document.querySelector(ancora);
+    if (alvo) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
   }
 }
 
@@ -265,17 +300,32 @@ export async function comecar() {
   // para não se autoiniciarem.
   document.body.dataset.casca = "sim";
   document.addEventListener("click", aoClicar);
+  window.addEventListener("popstate", (ev) => {
+    // Estado nulo é entrada de antes da casca: vale a tela de abertura.
+    const tela = telaDoEstado(ev.state) ?? telaInicial(location.pathname, null);
+    abrir(tela, { doHistorico: true });
+  });
 
-  const inicial = telaInicial(location.pathname, null);
+  const inicial = telaInicial(location.pathname, lerMarca(globalThis.sessionStorage));
+
+  // Depois de descobrir a tela, e nunca antes: é o caminho que a revela.
+  const limpo = enderecoLimpo(location.pathname, location.hash);
+  if (limpo) history.replaceState(history.state, "", limpo);
 
   if (inicial === "estande") {
     // A tela inicial já veio pronta no HTML da casca.
     atual = inicial;
     const modulo = await moduloDa(inicial);
     await modulo.iniciar();
+    // A primeira entrada também precisa de estado: sem isto, o primeiro
+    // Voltar traria `null` e não saberia para onde ir.
+    history.replaceState({ tela: inicial }, "", location.href);
   } else {
     await abrir(inicial, { doHistorico: true });
   }
 }
 
-if (typeof document !== "undefined") comecar();
+// O roteiro também é importado pelo `chrome.js`, que roda em toda página —
+// inclusive nas abertas soltas. A barra só existe na casca, e é ela que diz
+// que aqui é lugar de começar.
+if (typeof document !== "undefined" && document.getElementById("rotaBarra")) comecar();

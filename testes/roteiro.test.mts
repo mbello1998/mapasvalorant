@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  TELAS, telaDoHref, podeTrocar, telaInicial, precisaDesviar, telaDoEstado,
+  TELAS, telaDoHref, podeTrocar, telaInicial, precisaDesviar, telaDoEstado, lerMarca, enderecoLimpo,
 } from "../public/assets/js/roteiro.js";
 
 const ORIGEM = "https://estandebr.netlify.app";
@@ -68,4 +68,24 @@ test("estado de histórico de antes da casca não vira tela", () => {
   assert.equal(telaDoEstado({ tela: "mapas" }), "mapas");
   assert.equal(telaDoEstado(null), null);
   assert.equal(telaDoEstado({ tela: "painel" }), null);
+});
+
+test("a marca de tela é lida e apagada, e some sem sessionStorage", () => {
+  const cofre = new Map<string, string>([["rota.tela", "mapas"]]);
+  const fingido = {
+    getItem: (k: string) => cofre.get(k) ?? null,
+    removeItem: (k: string) => { cofre.delete(k); },
+  };
+  assert.equal(lerMarca(fingido), "mapas");
+  assert.equal(lerMarca(fingido), null, "a marca é de uma viagem só");
+
+  const quebrado = { getItem() { throw new Error("bloqueado"); }, removeItem() {} };
+  assert.equal(lerMarca(quebrado), null);
+});
+
+test("a barra de endereço fica só com a raiz: sem index.html e sem âncora", () => {
+  assert.equal(enderecoLimpo("/", ""), null, "já está limpo, nada a trocar");
+  assert.equal(enderecoLimpo("/index.html", ""), "/");
+  assert.equal(enderecoLimpo("/", "#estande"), "/");
+  assert.equal(enderecoLimpo("/index.html", "#agentes"), "/");
 });
