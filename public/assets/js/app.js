@@ -3,6 +3,7 @@ import {
   carregarNoticias, gradienteAgente,
 } from "./api.js";
 import { montarEstande } from "./range.js";
+import { guardarPresenca, lembrarPresenca } from "./presenca.js";
 import {
   $, elemento, texto, comoData, semMarcacao, vestirPagina,
 } from "./chrome.js";
@@ -1020,15 +1021,23 @@ const PONTO_MS = 45_000;
  * O último valor lido fica em `estado.online` para que qualquer remontagem da
  * grade ao vivo já nasça com o número certo, em vez de piscar um travessão.
  */
-function acompanharPresenca() {
+function acompanharPresenca(adiantada) {
   const pintar = (r) => {
     if (!r) return;
-    estado.online = { online: r.online, hoje: r.hoje ?? r.online };
+    // A leitura adiantada sai antes de o ponto desta aba chegar ao servidor,
+    // então ela ainda não conta quem está lendo. "Agora no site: 0" com
+    // alguém olhando a tela seria falso — há pelo menos esta aba.
+    const online = Number.isFinite(r.online) ? Math.max(r.online, 1) : r.online;
+    estado.online = { online, hoje: r.hoje ?? online };
+    guardarPresenca(globalThis.localStorage, estado.online);
     const agora = document.querySelector('[data-online="1"] .ficha__val');
     if (agora) agora.textContent = numeroOuTraco(estado.online.online);
     const hoje = document.querySelector('[data-hoje="1"] .ficha__val');
     if (hoje) hoje.textContent = numeroOuTraco(estado.online.hoje);
   };
+
+  // A leitura que saiu na frente pinta assim que responder.
+  adiantada?.then(pintar);
 
   const bater = () => { if (!document.hidden) baterPonto().then(pintar); };
   const ler = () => { if (!document.hidden) verPresenca().then(pintar); };
@@ -1045,6 +1054,18 @@ function acompanharPresenca() {
 /* ----------------------------------------------------------------- início */
 
 export async function iniciar() {
+  // A leitura de presença sai na frente, em paralelo com o conteúdo. Esperar
+  // o conteúdo para só então pedir o número somava meio segundo de travessão
+  // na tela, e um não depende do outro.
+  const presencaPronta = verPresenca();
+  // A grade ao vivo é a casa dos dois números: quanto antes ela puder nascer,
+  // antes eles aparecem. O pedido não depende do conteúdo, só a pintura.
+  const aoVivoPronto = carregarAoVivo();
+
+  // E o que ficou guardado da última visita já vale como primeiro desenho:
+  // quem volta vê número, não travessão, enquanto a resposta nova não chega.
+  estado.online = lembrarPresenca(globalThis.localStorage) ?? estado.online;
+
   const { conteudo, reserva } = await carregarConteudo();
 
   vestirPagina(conteudo, { aqui: "index.html" });
@@ -1113,8 +1134,8 @@ export async function iniciar() {
   // As fontes remotas são independentes: uma falhar não segura as outras.
   estado.jogadores = conteudo.jogadores;
   estado.presenca = conteudo.presenca;
-  carregarAoVivo().then(montarAoVivo);
-  acompanharPresenca();
+  aoVivoPronto.then(montarAoVivo);
+  acompanharPresenca(presencaPronta);
 
   carregarNoticias().then((coleta) => montarFeed(conteudo, coleta));
 
