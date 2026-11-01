@@ -1622,6 +1622,9 @@ a.feed__item:hover::before { background: var(--sinal); }
 
 .gaveta--perfil { max-width: min(560px, 94vw); }
 .perfil { display: grid; gap: var(--e-4); }
+/* O conteúdo do cartão do jogador rola por dentro, para o Fechar ficar preso
+   no canto da caixa como nos outros painéis. */
+.perfil__rolo { display: grid; gap: var(--e-4); align-content: start; }
 .perfil__topo { display: flex; align-items: center; justify-content: space-between; gap: var(--e-3); }
 .perfil__nome { font-family: var(--fonte-display); font-weight: 700; font-size: var(--t-l); min-width: 0; overflow-wrap: anywhere; }
 .perfil__conta { font-size: var(--t-xs); color: var(--tinta-3); }

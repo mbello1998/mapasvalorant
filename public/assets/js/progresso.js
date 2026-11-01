@@ -528,8 +528,11 @@ export async function abrirPerfil(nome, { tabela, patentes = [] } = {}) {
   // A pessoa pode ter fechado e clicado em outro nome enquanto isso carregava.
   if (!d.open || caixa.querySelector("#perfilNome")?.textContent !== nome) return;
 
+  // O Fechar fica preso no canto da caixa, nao no topo do conteudo: o que
+  // rola e o .perfil__rolo, e o botao continua a vista até o fim da lista
+  // de cartões.
   const fechar = elemento("button", {
-    class: "btn btn--vazio chf btn--mini", type: "button", texto: "Fechar",
+    class: "btn btn--vazio chf gaveta__fechar", type: "button", texto: "Fechar",
     onclick: () => d.close(),
   });
 
@@ -546,7 +549,6 @@ export async function abrirPerfil(nome, { tabela, patentes = [] } = {}) {
   const blocos = [
     elemento("div", { class: "perfil__topo" }, [
       elemento("h3", { id: "perfilNome", class: "perfil__nome", texto: nome }),
-      fechar,
     ]),
   ];
 
@@ -590,7 +592,10 @@ export async function abrirPerfil(nome, { tabela, patentes = [] } = {}) {
     ]));
   }
 
-  caixa.replaceChildren(...blocos.filter(Boolean));
+  caixa.replaceChildren(
+    fechar,
+    elemento("div", { class: "gaveta__rolo perfil__rolo" }, blocos.filter(Boolean)),
+  );
 }
 
 /* ------------------------------------------- o cartão que segue o mouse -- */
