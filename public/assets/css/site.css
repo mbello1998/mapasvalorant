@@ -505,13 +505,37 @@ a.feed__item:hover::before { background: var(--sinal); }
 .agente__funcao img { width: 13px; height: 13px; }
 
 /* painel do agente */
-.gaveta { border: 0; padding: 0; max-width: min(680px, 94vw); width: 100%; background: transparent; }
+/* A rolagem fica no proprio <dialog>, nunca na caixa chanfrada: o
+   preenchimento de uma superficie .chf e um ::before posicionado, que
+   acompanha o conteudo rolado e deixaria o pe do painel sem fundo. De
+   quebra, a caixa deixa de ser uma regiao rolavel e o navegador para de
+   focar nela, o que acendia o anel de foco em volta do painel inteiro. */
+.gaveta {
+  border: 0; padding: 0; max-width: min(680px, 94vw); width: 100%;
+  background: transparent;
+  max-height: 86vh; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: var(--linha) transparent;
+}
 .gaveta::backdrop { background: color-mix(in srgb, #050B0E 78%, transparent); }
 .gaveta__caixa {
   --corte: var(--corte-g); --chf-fundo: var(--aco); --chf-borda: var(--linha);
   padding: var(--e-5);
-  max-height: 86vh; overflow-y: auto; overscroll-behavior: contain;
 }
+
+/* Painel com rolagem por dentro: quem rola e o .gaveta__rolo, nunca a caixa
+   chanfrada nem o dialogo. Assim a caixa fica parada e o botao Fechar, que e
+   posicionado em relacao a ela, continua preso no canto enquanto se rola. */
+.gaveta:has(.gaveta__rolo) { overflow: hidden; }
+.gaveta__caixa:has(> .gaveta__rolo) { display: flex; flex-direction: column; max-height: 86vh; }
+.gaveta__rolo {
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: var(--linha) transparent;
+  /* A barra encosta na borda do painel, nao no texto. */
+  padding-right: var(--e-3); margin-right: calc(-1 * var(--e-3));
+}
+/* O Fechar fica por cima do conteudo que passa por baixo; o fundo opaco do
+   .btn--vazio e o que impede o texto de aparecer atras do rotulo. */
+.gaveta__caixa:has(> .gaveta__rolo) .gaveta__rolo > :first-child { padding-right: 7rem; }
 .gaveta__topo { display: flex; gap: var(--e-4); align-items: flex-start; }
 .gaveta__topo img { width: 84px; height: 84px; object-fit: contain; flex: 0 0 auto; }
 .gaveta h3 { font-size: var(--t-xl); }
@@ -547,6 +571,7 @@ a.feed__item:hover::before { background: var(--sinal); }
 .rodape__links { display: flex; flex-direction: column; gap: var(--e-2); align-items: flex-start; }
 .rodape__links a { font-size: var(--t-s); font-weight: 600; text-decoration: none; color: var(--tinta-2); }
 .rodape__links a:hover { color: var(--sinal-tinta); text-decoration: underline; text-underline-offset: 3px; }
+
 
 /* --------------------------------------------------------------- avisos --- */
 .aviso {

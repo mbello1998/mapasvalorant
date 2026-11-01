@@ -247,34 +247,38 @@ function abrirSkin(skin) {
     },
   });
 
+  // O que rola fica dentro do .gaveta__rolo: a caixa chanfrada nao rola, e por
+  // isso o botao Fechar continua preso no canto do painel.
   caixa.append(
     elemento("button", {
       type: "button", class: "btn btn--vazio chf gaveta__fechar", texto: "Fechar",
       onclick: () => gaveta.close(),
     }),
-    elemento("div", { class: "detalhe__topo" }, [
-      elemento("div", { class: "detalhe__moldura" }, [arte]),
-      elemento("div", { class: "detalhe__info" }, [
-        elemento("h3", { id: "gavetaNome", texto: skin.nome }),
-        elemento("p", { class: "detalhe__meta", texto: [arma?.nome, tema?.nome].filter(Boolean).join(" · ") }),
-        elemento("p", { class: "detalhe__tier", texto: tier?.nome ?? "Passe de batalha, evento ou recompensa" }),
-        vp === null
-          ? elemento("p", { class: "detalhe__preco detalhe__preco--sem", texto: "Não é vendida avulsa por VP" })
-          : elemento("p", { class: "detalhe__preco" }, [
-              elemento("strong", { texto: `${formatarVp(vp)} VP` }),
-              elemento("span", { texto: emReais(vp) ? ` · ${emReais(vp)} aproximados` : "" }),
-              ehCorpoACorpo(skin)
-                ? elemento("span", { class: "detalhe__preco--sem", texto: " — faca sai pelo dobro da arma da mesma raridade" })
-                : null,
-            ]),
-        acao,
+    elemento("div", { class: "gaveta__rolo" }, [
+      elemento("div", { class: "detalhe__topo" }, [
+        elemento("div", { class: "detalhe__moldura" }, [arte]),
+        elemento("div", { class: "detalhe__info" }, [
+          elemento("h3", { id: "gavetaNome", texto: skin.nome }),
+          elemento("p", { class: "detalhe__meta", texto: [arma?.nome, tema?.nome].filter(Boolean).join(" · ") }),
+          elemento("p", { class: "detalhe__tier", texto: tier?.nome ?? "Passe de batalha, evento ou recompensa" }),
+          vp === null
+            ? elemento("p", { class: "detalhe__preco detalhe__preco--sem", texto: "Não é vendida avulsa por VP" })
+            : elemento("p", { class: "detalhe__preco" }, [
+                elemento("strong", { texto: `${formatarVp(vp)} VP` }),
+                elemento("span", { texto: emReais(vp) ? ` · ${emReais(vp)} aproximados` : "" }),
+                ehCorpoACorpo(skin)
+                  ? elemento("span", { class: "detalhe__preco--sem", texto: " — faca sai pelo dobro da arma da mesma raridade" })
+                  : null,
+              ]),
+          acao,
+        ]),
       ]),
+      cromas.children.length ? elemento("h4", { class: "detalhe__sub", texto: "Cromas" }) : null,
+      cromas.children.length ? cromas : null,
+      elemento("h4", { class: "detalhe__sub", texto: "Níveis" }),
+      niveis,
+      videoCaixa,
     ]),
-    cromas.children.length ? elemento("h4", { class: "detalhe__sub", texto: "Cromas" }) : null,
-    cromas.children.length ? cromas : null,
-    elemento("h4", { class: "detalhe__sub", texto: "Níveis" }),
-    niveis,
-    videoCaixa,
   );
   gaveta.showModal();
 }

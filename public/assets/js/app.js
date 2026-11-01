@@ -519,7 +519,13 @@ function abrirAgente(a) {
     habs.append(linha);
   }
 
-  caixa.append(fechar, topo, desc, habs);
+  // O que rola fica dentro do .gaveta__rolo: a caixa chanfrada nao rola, e por
+  // isso o botao Fechar continua preso no canto do painel.
+  const rolo = document.createElement("div");
+  rolo.className = "gaveta__rolo";
+  rolo.append(topo, desc, habs);
+
+  caixa.append(fechar, rolo);
   gaveta.showModal();
 }
 
