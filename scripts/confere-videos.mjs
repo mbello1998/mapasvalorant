@@ -1,9 +1,10 @@
 /**
- * Confere os vídeos dos agentes contra a casa de origem.
+ * Confere os vídeos dos agentes e dos mapas contra a casa de origem.
  *
  *   node scripts/confere-videos.mjs
  *
- * Cada registro de `public/assets/dados/videos-agentes.json` é perguntado ao
+ * Cada registro de `public/assets/dados/videos-agentes.json` e de
+ * `videos-mapas.json` é perguntado ao
  * oEmbed do YouTube ou do TikTok, que é o jeito público de saber se o vídeo
  * ainda existe e de quem ele é. O que não responde está morto — o autor
  * apagou, deixou privado ou a plataforma derrubou — e precisa sair do
@@ -19,7 +20,9 @@
 
 import { readFile } from "node:fs/promises";
 
-const ARQUIVO = new URL("../public/assets/dados/videos-agentes.json", import.meta.url);
+const ARQUIVOS = ["videos-agentes.json", "videos-mapas.json"].map(
+  (nome) => new URL(`../public/assets/dados/${nome}`, import.meta.url),
+);
 
 /** Contas oficiais. Qualquer outro autor é suspeito e vira aviso. */
 const OFICIAIS = new Set([
@@ -31,6 +34,9 @@ const OEMBED = {
     `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${v.id}`)}`,
   tiktok: (v) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(v.url)}`,
 };
+
+/** O nome do agente ou do mapa, que é só o rótulo da linha no relatório. */
+const quem = (v) => v.agente ?? v.mapa ?? "?";
 
 async function conferir(uuid, v) {
   const monta = OEMBED[v.plataforma];
@@ -47,14 +53,17 @@ async function conferir(uuid, v) {
   }
 }
 
-const videos = JSON.parse(await readFile(ARQUIVO, "utf8"));
-const entradas = Object.entries(videos);
+const entradas = [];
+for (const arquivo of ARQUIVOS) {
+  const videos = JSON.parse(await readFile(arquivo, "utf8"));
+  entradas.push(...Object.entries(videos));
+}
 const resultados = await Promise.all(entradas.map(([uuid, v]) => conferir(uuid, v)));
 
 let problemas = 0;
 
-for (const r of resultados.sort((a, b) => a.v.agente.localeCompare(b.v.agente))) {
-  const nome = r.v.agente.padEnd(10);
+for (const r of resultados.sort((a, b) => quem(a.v).localeCompare(quem(b.v)))) {
+  const nome = quem(r.v).padEnd(10);
   if (r.erro) {
     problemas += 1;
     console.log(`✖ ${nome} ${r.v.plataforma}/${r.v.id} — ${r.erro}`);

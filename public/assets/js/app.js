@@ -494,26 +494,27 @@ function montarAgentes(agentes, destaqueUuid) {
   pintar();
 }
 
-/* ------------------------------------------------ o vídeo do agente ----- */
+/* ------------------------------------------- o vídeo do agente e do mapa -- */
 /**
- * O vídeo oficial de cada agente, lido de um arquivo curado à mão.
+ * O vídeo oficial de um agente ou de um mapa, lido de um arquivo curado à mão.
  *
- * Uma leitura por sessão de navegação, e só na primeira vez que alguém abre
- * um painel. Agente sem vídeo conferido não aparece no arquivo e não ganha
- * caixa nenhuma: um quadro vazio seria pior do que nada.
+ * Uma leitura por catálogo por sessão de navegação, e só na primeira vez que
+ * alguém abre um painel daquele tipo. Quem não tem vídeo conferido não aparece
+ * no arquivo e não ganha caixa nenhuma: um quadro vazio seria pior do que
+ * nada.
  */
-let videosDeAgentes = null;
+const videosLidos = new Map();
 
-function videoDoAgente(uuid) {
-  if (!videosDeAgentes) {
-    videosDeAgentes = fetch("/assets/dados/videos-agentes.json")
+function videoDe(arquivo, uuid) {
+  if (!videosLidos.has(arquivo)) {
+    videosLidos.set(arquivo, fetch(`/assets/dados/${arquivo}`)
       .then((r) => (r.ok ? r.json() : {}))
       .catch((e) => {
-        console.warn("Vídeos dos agentes indisponíveis:", e.message);
+        console.warn(`Vídeos de ${arquivo} indisponíveis:`, e.message);
         return {};
-      });
+      }));
   }
-  return videosDeAgentes.then((m) => m?.[uuid] ?? null);
+  return videosLidos.get(arquivo).then((m) => m?.[uuid] ?? null);
 }
 
 /**
@@ -622,7 +623,7 @@ function abrirAgente(a) {
   // O video entra depois, logo abaixo da descricao: ler o arquivo de dados
   // nao pode atrasar o painel. Se a pessoa ja fechou ou abriu outro agente
   // enquanto isso, o resultado e descartado.
-  videoDoAgente(a.uuid).then((v) => {
+  videoDe("videos-agentes.json", a.uuid).then((v) => {
     const bloco = v && caixaDeVideo(v);
     if (!bloco) return;
     if (!gaveta.open || $("gavetaNome")?.textContent !== a.displayName) return;
@@ -751,6 +752,16 @@ function abrirMapa(m) {
   const rolo = elemento("div", { class: "gaveta__rolo" }, [capa, h, meta, desc, pe]);
   caixa.append(fechar, rolo);
   gaveta.showModal();
+  pararMidiaAoFechar(gaveta);
+
+  // Mesma história do painel do agente: o vídeo entra depois, logo abaixo da
+  // descrição, e só se a pessoa ainda estiver olhando este mapa.
+  videoDe("videos-mapas.json", m.uuid).then((v) => {
+    const bloco = v && caixaDeVideo(v);
+    if (!bloco) return;
+    if (!gaveta.open || $("gavetaNome")?.textContent !== m.displayName) return;
+    desc.after(bloco);
+  });
 }
 
 /* -------------------------------------------- publicar o que acabou de ser
