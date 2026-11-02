@@ -15,6 +15,15 @@
     "autor": "VALORANT",
     "url": "https://www.youtube.com/watch?v=IhhjcB2ZjIM"
   },
+  "2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba": {
+    "mapa": "Bind",
+    "plataforma": "youtube",
+    "id": "aO5lZdlXdr0",
+    "titulo": "Callouts do Bind — guia da comunidade",
+    "autor": "Player Emeritus",
+    "url": "https://www.youtube.com/watch?v=aO5lZdlXdr0",
+    "oficial": false
+  },
   "2fb9a4fd-47b8-4e7d-a969-74b4046ebd53": {
     "mapa": "Breeze",
     "plataforma": "youtube",
@@ -39,6 +48,15 @@
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=XhAOpKRSZ20"
   },
+  "2bee0dc9-4ffe-519b-1cbd-7fbe763a6047": {
+    "mapa": "Haven",
+    "plataforma": "youtube",
+    "id": "NWFGHojJMcc",
+    "titulo": "Nomes dos lugares no Haven — guia da comunidade",
+    "autor": "Schurumelos",
+    "url": "https://www.youtube.com/watch?v=NWFGHojJMcc",
+    "oficial": false
+  },
   "e2ad5c54-4114-a870-9641-8ea21279579a": {
     "mapa": "Icebox",
     "plataforma": "youtube",
@@ -62,6 +80,15 @@
     "titulo": "Dia do Santuário // Trailer Oficial do Mapa Pearl",
     "autor": "VALORANT // Brasil",
     "url": "https://www.youtube.com/watch?v=3ZmErRG7tsI"
+  },
+  "d960549e-485c-e861-8d71-aa9d1aed12a2": {
+    "mapa": "Split",
+    "plataforma": "youtube",
+    "id": "yrgbZJeDwso",
+    "titulo": "Nomes das posições no Split — guia da comunidade",
+    "autor": "Akkarin",
+    "url": "https://www.youtube.com/watch?v=yrgbZJeDwso",
+    "oficial": false
   },
   "756da597-416b-c0f2-f47b-afbdf28670bc": {
     "mapa": "Summit",

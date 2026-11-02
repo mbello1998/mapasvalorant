@@ -10,10 +10,12 @@
  * apagou, deixou privado ou a plataforma derrubou — e precisa sair do
  * arquivo ou ser trocado, porque na página ele vira um quadro vazio.
  *
- * O canal também é conferido: o arquivo só deve apontar para conta oficial,
- * e um id trocado por engano costuma cair num canal de terceiro, não num
- * vídeo inexistente. Por isso o aviso de autor diferente vale tanto quanto o
- * de vídeo morto.
+ * O canal também é conferido. Um id trocado por engano costuma cair num
+ * canal qualquer, não num vídeo inexistente, então o autor errado vale tanto
+ * aviso quanto o vídeo morto. Para os registros oficiais, "certo" é estar
+ * numa das contas da Riot; para os poucos marcados `"oficial": false` — guia
+ * de mapa feito por criador, onde a Riot não publicou nada —, "certo" é
+ * continuar no canal que o arquivo diz.
  *
  * Sai com código 1 se algo estiver errado, para servir de porta num CI.
  */
@@ -69,10 +71,16 @@ for (const r of resultados.sort((a, b) => quem(a.v).localeCompare(quem(b.v)))) {
     console.log(`✖ ${nome} ${r.v.plataforma}/${r.v.id} — ${r.erro}`);
     continue;
   }
-  const estranho = r.autor && !OFICIAIS.has(r.autor);
+  const daRiot = r.v.oficial !== false;
+  const estranho = r.autor && (daRiot
+    ? !OFICIAIS.has(r.autor)
+    : r.autor !== r.v.autor);
   if (estranho) problemas += 1;
-  console.log(`${estranho ? "⚠" : "✔"} ${nome} ${r.autor || "(sem autor)"} — ${r.titulo || r.v.titulo}`);
+  const marca = estranho ? "⚠" : (daRiot ? "✔" : "·");
+  console.log(`${marca} ${nome} ${r.autor || "(sem autor)"} — ${r.titulo || r.v.titulo}`);
 }
 
-console.log(`\n${entradas.length} vídeos, ${problemas} com problema.`);
+const daComunidade = entradas.filter(([, v]) => v.oficial === false).length;
+console.log(`\n${entradas.length} vídeos (${daComunidade} da comunidade, marcados com ·), `
+  + `${problemas} com problema.`);
 process.exit(problemas ? 1 : 0);
